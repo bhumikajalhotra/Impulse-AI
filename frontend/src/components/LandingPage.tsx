@@ -5,13 +5,15 @@ import { Sparkles, ArrowRight, Clock, Settings, LogIn, User, Zap, Coffee } from 
 interface LandingPageProps {
   onAnalyze: (url: string) => void;
   isAuthenticated: boolean;
-  onLogin: () => void;
+  userName: string;
+  onLogin: (name?: string) => void;
   vibe: string;
   setVibe: (vibe: string) => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onAnalyze, isAuthenticated, onLogin, vibe, setVibe }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onAnalyze, isAuthenticated, userName, onLogin, vibe, setVibe }) => {
   const [url, setUrl] = useState('');
+  const [tempName, setTempName] = useState('');
   const [history, setHistory] = useState<any[]>([]);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -34,7 +36,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onAnalyze, isAuthentic
     setIsLoggingIn(true);
     setTimeout(() => {
       setIsLoggingIn(false);
-      onLogin();
+      onLogin(tempName || 'Shopper');
     }, 1500);
   };
 
@@ -64,11 +66,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onAnalyze, isAuthentic
         {isAuthenticated && (
           <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-full pl-2 pr-4 py-1.5 backdrop-blur-md">
             <img 
-              src="https://api.dicebear.com/7.x/notionists/svg?seed=Bhumika&backgroundColor=ec4899" 
-              alt="Bhumika" 
+              src={`https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(userName)}&backgroundColor=ec4899`} 
+              alt="User" 
               className="w-8 h-8 rounded-full border border-pink-500/50"
             />
-            <span className="font-medium text-sm text-gray-200">Bhumika</span>
+            <span className="font-medium text-sm text-gray-200">{userName}</span>
           </div>
         )}
       </div>
@@ -127,7 +129,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onAnalyze, isAuthentic
         </p>
 
         {!isAuthenticated ? (
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex justify-center">
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-4">
+            <input 
+              type="text"
+              placeholder="Enter your name (optional)"
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+              className="bg-white/5 border border-white/10 rounded-full px-6 py-3 text-white focus:outline-none focus:border-pink-500/50 transition-all w-64 text-center"
+            />
             <button 
               onClick={handleMockLogin}
               disabled={isLoggingIn}

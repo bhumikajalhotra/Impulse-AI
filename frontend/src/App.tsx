@@ -9,14 +9,17 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userName, setUserName] = useState('Shopper');
   const [vibe, setVibe] = useState('Savage');
 
   const handleAnalyze = async (url: string) => {
+    console.log("Connecting to API at:", import.meta.env.VITE_API_URL || "http://localhost:5001");
     setLoading(true);
     setResult(null);
 
     try {
-      const response = await fetch('http://localhost:5001/api/analyze', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${apiUrl}/api/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, vibe }),
@@ -74,7 +77,11 @@ function App() {
             <LandingPage 
               onAnalyze={handleAnalyze} 
               isAuthenticated={isAuthenticated} 
-              onLogin={() => setIsAuthenticated(true)}
+              userName={userName}
+              onLogin={(name) => {
+                setIsAuthenticated(true);
+                if (name) setUserName(name);
+              }}
               vibe={vibe}
               setVibe={setVibe}
             />

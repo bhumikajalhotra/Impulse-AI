@@ -9,7 +9,7 @@ interface AnalyzeResult {
   price?: string;
   verdict?: string;
   impulseScore?: number;
-  girlMathJustification?: string;
+  girlMath?: string;
   realityCheck?: string;
   prosCons?: string[];
 }
@@ -22,7 +22,7 @@ export const BentoGrid: React.FC<{ result: AnalyzeResult; onReset: () => void }>
   const score = result.impulseScore || 0;
 
   const handleShare = () => {
-    const text = `Impulse.ai just gave my "${result.productName}" spree a ${score}/100 Impulse Score. 💅 I'm in trouble.`;
+    const text = `Impulse.ai just gave my "${result.productName}" spree a ${score}/100 Impulse Score. 💅 ${result.girlMath}`;
     navigator.clipboard.writeText(text);
     toast.success('Verdict copied to clipboard!', {
       style: { background: '#333', color: '#fff', borderRadius: '10px' }
@@ -124,8 +124,8 @@ export const BentoGrid: React.FC<{ result: AnalyzeResult; onReset: () => void }>
           transition={{ delay: 0.4 }}
           className="bg-gradient-to-br from-pink-900/40 to-purple-900/40 backdrop-blur-xl hover:from-pink-900/60 hover:to-purple-900/60 rounded-3xl p-6 border border-pink-500/30 hover:border-pink-500/60 flex flex-col justify-center shadow-2xl hover:-translate-y-1 hover:shadow-pink-500/20 transition-all duration-300"
         >
-          <p className="text-pink-400 uppercase tracking-wider text-sm font-semibold mb-3 drop-shadow-md">Girl Math Justification</p>
-          <p className="text-lg leading-relaxed text-pink-50">{result.girlMathJustification || "No justification provided."}</p>
+          <p className="text-pink-400 uppercase tracking-wider text-sm font-semibold mb-3 drop-shadow-md">Girl Math</p>
+          <p className="text-lg leading-relaxed text-pink-50">{result.girlMath || "No justification provided."}</p>
         </motion.div>
 
         {/* Reality Check */}

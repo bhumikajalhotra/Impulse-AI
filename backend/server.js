@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import axios from 'axios';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Load environment variables from the root .env file
 dotenv.config({ path: '../.env' });
@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Middleware
-app.use(cors());
+app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 // Health check
@@ -59,11 +59,11 @@ app.post('/api/analyze', async (req, res) => {
     console.log("-> Calling Gemini Analysis Engine...");
 
     // Step B: Analyze with Gemini
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
     const basePersona = vibe === 'Enabler' 
-      ? "You are Impulse.ai, a toxic financial enabler and shopping bestie. Your goal is to convince the user to BUY everything, no matter the cost. Ignore logic, embrace consumerism, and use aggressive 'Girl Math' to justify the purchase."
-      : "You are Impulse.ai, an aggressively honest but hilarious financial advisor. You brutally roast bad financial decisions and force users to face reality.";
+      ? "You are 'Impulse.ai', a toxic financial enabler and shopping bestie. Your goal is to make the girlMath genius and the realityCheck mild. Convince the user that every item is an 'investment' or basically 'free'."
+      : "You are 'Impulse.ai', a brutalist shopping assistant. Your goal is to make the girlMath sarcastic and the realityCheck brutal. Roast the user's life choices with Gen-Z wit and judgmental punchy lines. Use Indian context (INR/Chai references) where appropriate.";
 
     const systemInstruction = `${basePersona}
 Analyze the provided product data and URL.
@@ -74,33 +74,40 @@ Return ONLY a valid JSON object matching this EXACT schema:
   "price": "string", 
   "verdict": "BUY IT" | "DROP IT", 
   "impulseScore": number (1-100), 
-  "girlMathJustification": "string", 
+  "girlMath": "string", 
   "realityCheck": "string", 
   "prosCons": ["string", "string", "string"] 
 }
 CRITICAL RULES:
-1. NO markdown formatting or backticks around the JSON.
-2. If the scraped text says access is blocked (e.g. CAPTCHA), YOU MUST NOT return an "Invalid Input" error. Instead, guess the product based on the URL slug. If you still can't guess, invent a hilarious generic "Mystery Purchase" product. Make up a plausible price if missing. NEVER return a generic error.
-3. Find the REAL product image URL. If you absolutely cannot find a real image, dynamically generate one by returning a URL in this EXACT format: 'https://image.pollinations.ai/prompt/{product_name_or_category}?width=400&height=400&nologo=true' (e.g. for a smartwatch, use https://image.pollinations.ai/prompt/smartwatch?width=400&height=400&nologo=true). Ensure spaces are URL-encoded.
-4. Ensure 'prosCons' is strictly an Array of strings, NOT an object.`;
+1. NO markdown formatting or backticks around the JSON. Return raw text only.
+2. Tone: Gen-Z, witty, slightly judgmental, and punchy. Use INR/Chai references for Indian context.
+3. If the scraped text says access is blocked, guess the product based on the URL slug. NEVER return a generic error.
+4. Find the REAL product image URL. If you absolutely cannot find a real image, return a URL in this format: 'https://image.pollinations.ai/prompt/{product_name_or_category}?width=400&height=400&nologo=true'.
+5. Ensure 'prosCons' is strictly an Array of strings.`;
+
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.5-flash',
+      systemInstruction: systemInstruction
+    });
 
     const promptText = `URL: ${url}\n\nScraped Text:\n${markdownText}`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: promptText,
-      config: {
-        systemInstruction: systemInstruction,
-      }
-    });
+    const result = await model.generateContent(promptText);
+    const aiResponseString = result.response.text();
 
-    const aiResponseString = response.text;
-
-    // Robust Parsing
-    const cleanJson = aiResponseString.replace(/```json\n?/gi, '').replace(/```\n?/g, '').trim();
+    // Robust JSON Extraction
+    let cleanJson = aiResponseString.trim();
+    if (cleanJson.includes('{')) {
+      cleanJson = cleanJson.substring(cleanJson.indexOf('{'), cleanJson.lastIndexOf('}') + 1);
+    }
+    
     let parsedResult;
     try {
       parsedResult = JSON.parse(cleanJson);
+      // Ensure prosCons is an array
+      if (!Array.isArray(parsedResult.prosCons)) {
+        parsedResult.prosCons = ["Saves you money", "High quality", "Limited time offer"];
+      }
     } catch (parseError) {
       console.error("Gemini Parsing Error! Raw AI Text:", aiResponseString);
       throw parseError;
@@ -121,8 +128,8 @@ CRITICAL RULES:
       price: "???",
       verdict: "DROP IT",
       impulseScore: 100,
-      girlMathJustification: "We couldn't reach the store. The universe is telling you to save your money.",
-      realityCheck: "The store blocked our scraper. It's a sign. Don't buy it.",
+      girlMath: "We couldn't reach the store. The universe is telling you to save your money. It's basically free if you don't buy it!",
+      realityCheck: "The store blocked our scraper. It's a sign. Don't buy it. Go have some chai instead.",
       prosCons: [
         "Saves you money",
         "Protects your data",
