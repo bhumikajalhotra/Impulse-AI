@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/* Premium scrollbar hide */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Neon glow text effect for verdict */
+.neon-text-green {
+  text-shadow: 0 0 20px rgba(52, 211, 153, 0.8), 0 0 60px rgba(52, 211, 153, 0.4);
+}
+.neon-text-red {
+  text-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 0 0 60px rgba(239, 68, 68, 0.4);
+}
+
+/* Smooth font rendering */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism base */
+.glass {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
