@@ -1,95 +1,52 @@
-import { useState, useEffect } from 'react';
-import { Toaster, toast } from 'react-hot-toast';
-import { LandingPage } from './components/LandingPage';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { useAuth } from './contexts/AuthContext';
+import { MainLayout } from './layouts/MainLayout';
+import { AuthPage } from './pages/AuthPage';
+import { Dashboard } from './pages/Dashboard';
+import { HistoryPage } from './pages/HistoryPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { LoadingScreen } from './components/LoadingScreen';
-import { BentoGrid } from './components/BentoGrid';
-import { AnimatePresence, motion } from 'framer-motion';
+
+// Protected Route Wrapper
+const AuthGuard = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  
+  return <>{children}</>;
+};
 
 function App() {
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userName, setUserName] = useState('Shopper');
-  const [vibe, setVibe] = useState('Savage');
-
-  const handleAnalyze = async (url: string) => {
-    console.log("Connecting to API at:", import.meta.env.VITE_API_URL || "http://localhost:5001");
-    setLoading(true);
-    setResult(null);
-
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-      const response = await fetch(`${apiUrl}/api/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, vibe }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to analyze URL');
-      }
-
-      setResult(data);
-
-      // Save to Search History
-      const history = JSON.parse(localStorage.getItem('impulse_history') || '[]');
-      const newEntry = {
-        url,
-        productName: data.productName,
-        price: data.price,
-        verdict: data.verdict,
-        thumbnail: data.productImage
-      };
-      // Keep only last 10 for the horizontal scroll
-      const updatedHistory = [newEntry, ...history.filter((h: any) => h.url !== url)].slice(0, 10);
-      localStorage.setItem('impulse_history', JSON.stringify(updatedHistory));
-
-    } catch (err: any) {
-      toast.error(err.message, {
-        style: {
-          background: '#333',
-          color: '#fff',
-          borderRadius: '10px',
-        },
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-white selection:bg-pink-500/30 overflow-x-hidden">
-      <Toaster position="top-center" />
+    <BrowserRouter>
+      <Toaster position="top-center" toastOptions={{ style: { background: '#333', color: '#fff', borderRadius: '10px' } }} />
       
-      <AnimatePresence mode="wait">
-        {loading ? (
-          <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <LoadingScreen />
-          </motion.div>
-        ) : result ? (
-          <motion.div key="result" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
-            <BentoGrid result={result} onReset={() => setResult(null)} />
-          </motion.div>
-        ) : (
-          <motion.div key="landing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <LandingPage 
-              onAnalyze={handleAnalyze} 
-              isAuthenticated={isAuthenticated} 
-              userName={userName}
-              onLogin={(name) => {
-                setIsAuthenticated(true);
-                if (name) setUserName(name);
-              }}
-              vibe={vibe}
-              setVibe={setVibe}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+      <Routes>
+        <Route path="/login" element={<AuthPage />} />
+        
+        <Route 
+          path="/" 
+          element={
+            <AuthGuard>
+              <MainLayout />
+            </AuthGuard>
+          }
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="history" element={<HistoryPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
 export default App;
+

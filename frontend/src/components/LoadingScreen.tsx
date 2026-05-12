@@ -6,7 +6,7 @@ const LOADING_TEXTS = [
   "Calculating cost-per-use ratio...",
   "Judging your life choices...",
   "Consulting the girl math council...",
-  "Checking your bank account's feelings...",
+  "Checking your bank account...",
   "Summoning financial wisdom...",
   "Asking the AI therapist...",
 ];
@@ -17,83 +17,66 @@ export const LoadingScreen: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setTextIndex((prev) => (prev + 1) % LOADING_TEXTS.length);
-    }, 1800);
+    }, 2000);
     return () => clearInterval(interval);
   }, []);
 
+  const SkeletonCard = ({ className = "", delay = 0 }) => (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className={`bg-card/50 border border-border rounded-3xl p-6 overflow-hidden relative shadow-sm ${className}`}
+    >
+      <motion.div 
+        animate={{ x: ['-100%', '200%'] }}
+        transition={{ duration: 1.5, repeat: Infinity, ease: "linear", delay }}
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 dark:via-white/5 to-transparent skew-x-12"
+      />
+      <div className="space-y-4">
+        <div className="h-4 bg-black/5 dark:bg-white/5 rounded-full w-2/3" />
+        <div className="h-8 bg-black/5 dark:bg-white/5 rounded-2xl w-full" />
+        <div className="h-4 bg-black/5 dark:bg-white/5 rounded-full w-1/2" />
+      </div>
+    </motion.div>
+  );
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 relative overflow-hidden">
-      {/* Ambient orbs */}
-      <motion.div
-        animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute w-[400px] h-[400px] bg-purple-600/30 rounded-full blur-[100px] pointer-events-none"
-      />
-      <motion.div
-        animate={{ scale: [1.3, 1, 1.3], opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-        className="absolute w-[300px] h-[300px] bg-pink-600/30 rounded-full blur-[80px] pointer-events-none"
-      />
-
-      {/* Logo pulse */}
-      <motion.div
-        animate={{ scale: [1, 1.08, 1] }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-        className="mb-12 text-5xl font-black tracking-tighter z-10"
-      >
-        <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500">
-          Impulse
-        </span>
-        <span className="text-white">.ai</span>
-      </motion.div>
-
-      {/* Spinning ring */}
-      <div className="relative w-24 h-24 mb-10 z-10">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-          className="absolute inset-0 rounded-full border-4 border-transparent border-t-pink-500 border-r-purple-500"
-        />
-        <motion.div
-          animate={{ rotate: -360 }}
-          transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-          className="absolute inset-2 rounded-full border-4 border-transparent border-t-purple-400 border-l-pink-400 opacity-60"
-        />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <motion.div
-            animate={{ scale: [1, 1.3, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-4 h-4 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 shadow-[0_0_20px_rgba(236,72,153,0.8)]"
-          />
-        </div>
+    <div className="w-full max-w-6xl mx-auto flex flex-col pt-4 overflow-visible">
+      {/* Background Glowing Orb */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] pointer-events-none -z-10"></div>
+      
+      <div className="flex justify-between items-center mb-8 w-full opacity-50">
+        <div className="w-32 h-10 bg-black/5 dark:bg-white/5 rounded-full" />
+        <div className="w-40 h-10 bg-black/5 dark:bg-white/5 rounded-full" />
       </div>
 
-      {/* Animated text */}
-      <div className="h-10 flex items-center justify-center z-10">
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={textIndex}
-            initial={{ opacity: 0, y: 15, filter: 'blur(4px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, y: -15, filter: 'blur(4px)' }}
-            transition={{ duration: 0.4 }}
-            className="text-xl font-medium text-gray-300 text-center"
-          >
-            {LOADING_TEXTS[textIndex]}
-          </motion.p>
-        </AnimatePresence>
-      </div>
-
-      {/* Progress dots */}
-      <div className="flex gap-2 mt-10 z-10">
-        {[0, 1, 2].map((i) => (
-          <motion.div
-            key={i}
-            animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.3 }}
-            className="w-2 h-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500"
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(160px,auto)] z-10 w-full">
+        <SkeletonCard className="md:col-span-1 md:row-span-2" delay={0} />
+        <motion.div 
+          className="md:col-span-2 bg-card/50 border border-border rounded-3xl p-12 flex flex-col items-center justify-center relative overflow-hidden shadow-sm"
+        >
+          <motion.div 
+            animate={{ x: ['-100%', '200%'] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 dark:via-white/10 to-transparent skew-x-12"
           />
-        ))}
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={textIndex}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="text-2xl font-bold text-muted-foreground text-center z-10"
+            >
+              {LOADING_TEXTS[textIndex]}
+            </motion.p>
+          </AnimatePresence>
+        </motion.div>
+        
+        <SkeletonCard delay={0.2} />
+        <SkeletonCard delay={0.4} />
+        <SkeletonCard className="md:col-span-2" delay={0.6} />
+        <SkeletonCard delay={0.8} />
       </div>
     </div>
   );

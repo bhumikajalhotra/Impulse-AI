@@ -8,15 +8,15 @@ async function run() {
         if (!process.env.GEMINI_API_KEY) {
             throw new Error("GEMINI_API_KEY not found in .env");
         }
-        
+
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-        
+
         console.log("-> Testing Gemini connection...");
         const result = await model.generateContent("Hello! Are you working?");
         console.log("-> Response:", result.response.text());
-        
-    } catch(e) {
+
+    } catch (e) {
         console.error("-> Error:", e.message);
     }
 }
