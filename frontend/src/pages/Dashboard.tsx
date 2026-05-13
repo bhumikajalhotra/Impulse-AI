@@ -12,6 +12,7 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [currentAnalyzeUrl, setCurrentAnalyzeUrl] = useState<string>('');
 
   const fetchHistory = async () => {
     if (user) {
@@ -34,10 +35,11 @@ export const Dashboard: React.FC = () => {
     fetchHistory();
   }, [user]);
 
-  const handleAnalyze = async (analyzeUrl: string) => {
+  const handleAnalyze = async (analyzeUrl: string, manualName?: string, manualPrice?: string) => {
     const vibe = localStorage.getItem('impulse_vibe') || 'Savage';
     const budget = localStorage.getItem('impulse_budget') || '5000';
     
+    setCurrentAnalyzeUrl(analyzeUrl);
     setLoading(true);
     setResult(null);
 
@@ -50,7 +52,9 @@ export const Dashboard: React.FC = () => {
           url: analyzeUrl, 
           vibe, 
           userId: user?.uid,
-          budget: parseFloat(budget)
+          budget: parseFloat(budget),
+          productName: manualName,
+          manualPrice: manualPrice
         }),
       });
 
@@ -70,11 +74,26 @@ export const Dashboard: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (url.trim()) handleAnalyze(url);
+    if (!url.trim()) return;
+    
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      toast.error("That doesn't look like a shopping link. Are you trying to trick me?");
+      return;
+    }
+    
+    handleAnalyze(url);
   };
 
   if (loading) return <LoadingScreen />;
-  if (result) return <BentoGrid result={result} onReset={() => setResult(null)} />;
+  if (result) return (
+    <BentoGrid
+      result={result}
+      onReset={() => setResult(null)}
+      onSubmitManual={(name, price) => handleAnalyze(currentAnalyzeUrl, name, price)}
+    />
+  );
+
+  const firstName = user?.displayName?.split(' ')[0] || 'there';
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[75vh] text-center">
@@ -84,6 +103,9 @@ export const Dashboard: React.FC = () => {
         transition={{ duration: 0.5 }}
         className="w-full"
       >
+        <div className="mb-6 inline-block bg-pink-500/10 px-4 py-2 rounded-full border border-pink-500/20 text-pink-600 dark:text-pink-400 font-bold text-sm shadow-sm backdrop-blur-sm">
+          Hey {firstName}, ready for a reality check?
+        </div>
         <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6 leading-[0.95]">
           Paste the link. <br/>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600">

@@ -1,13 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { PiggyBank, TrendingDown } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export const SavingsTracker: React.FC = () => {
   const [savings, setSavings] = useState(0);
+  const { user } = useAuth();
 
   useEffect(() => {
+    // Initial optimistic load from local storage
     const saved = localStorage.getItem('impulse_savings') || '0';
     setSavings(parseFloat(saved));
+
+    const fetchSavings = async () => {
+      if (user?.uid) {
+        try {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+          const response = await fetch(`${apiUrl}/api/user/${user.uid}/savings`);
+          const data = await response.json();
+          if (data && typeof data.savings === 'number') {
+            setSavings(data.savings);
+            localStorage.setItem('impulse_savings', data.savings.toString());
+          }
+        } catch (err) {
+          console.error("Failed to fetch savings from backend", err);
+        }
+      }
+    };
+
+    fetchSavings();
 
     const handleStorageChange = () => {
       const updated = localStorage.getItem('impulse_savings') || '0';
@@ -15,14 +36,13 @@ export const SavingsTracker: React.FC = () => {
     };
 
     window.addEventListener('storage', handleStorageChange);
-    // Custom event for same-window updates
     window.addEventListener('savingsUpdated', handleStorageChange);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('savingsUpdated', handleStorageChange);
     };
-  }, []);
+  }, [user]);
 
   return (
     <motion.div 
