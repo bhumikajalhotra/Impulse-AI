@@ -8,22 +8,30 @@ import admin from 'firebase-admin';
 // Load environment variables from the root .env file
 dotenv.config({ path: '../.env' });
 
-// ─── Startup: API Key Validation ───
-if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.trim() === '') {
-  console.error('\n========================================================');
-  console.error('  FATAL: GEMINI_API_KEY is missing or empty in .env!');
-  console.error('  Get a fresh key at: https://aistudio.google.com/app/apikey');
-  console.error('  Add it to your root .env as: GEMINI_API_KEY=your_key_here');
-  console.error('========================================================\n');
-} else {
-  console.log('✅ GEMINI_API_KEY detected. Length:', process.env.GEMINI_API_KEY.length);
-}
+// ─── Startup: Environment Variable Audit ───
+const IS_DEV = process.env.NODE_ENV !== 'production';
 
-if (!process.env.ANAKIN_API_KEY || process.env.ANAKIN_API_KEY.trim() === '') {
-  console.warn('⚠️  ANAKIN_API_KEY is missing. Scraping will fall back to direct fetch only.');
-} else {
-  console.log('✅ ANAKIN_API_KEY detected.');
-}
+const validateKeys = () => {
+  const essential = ['GEMINI_API_KEY', 'ANAKIN_API_KEY'];
+  console.log('\n🚀 Impulse.ai Backend: Auditing API Keys...');
+  
+  essential.forEach(key => {
+    const val = process.env[key];
+    if (!val || val.trim() === '') {
+      console.error(`❌ FATAL: ${key} is missing or empty!`);
+    } else if (IS_DEV) {
+      console.log(`✅ ${key} is present (Length: ${val.length})`);
+    }
+  });
+
+  if (!process.env.GEMINI_API_KEY) {
+    console.error('========================================================');
+    console.error('  CRITICAL: GEMINI_API_KEY is required for AI Analysis.');
+    console.error('========================================================\n');
+  }
+};
+
+validateKeys();
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -44,6 +52,19 @@ const PORT = process.env.PORT || 5001;
 // Middleware
 app.use(cors({ origin: '*' }));
 app.use(express.json());
+
+// ─── Maintenance Check Middleware ───
+const maintenanceMiddleware = (req, res, next) => {
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(503).json({ 
+      error: 'MAINTENANCE_ERROR', 
+      message: 'System is undergoing maintenance (API Error)' 
+    });
+  }
+  next();
+};
+
+app.use('/api/analyze', maintenanceMiddleware);
 
 // ─── User-Agent Rotation Pool ───
 // Latest Chrome/Safari UA strings for Mac and iPhone (as of 2025)

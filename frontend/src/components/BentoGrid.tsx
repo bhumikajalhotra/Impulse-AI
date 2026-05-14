@@ -206,7 +206,7 @@ export const BentoGrid: React.FC<{
         try {
           const user = JSON.parse(authData);
           if (user?.uid) {
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+            const apiUrl = import.meta.env.VITE_API_URL;
             await fetch(`${apiUrl}/api/user/${user.uid}/savings`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

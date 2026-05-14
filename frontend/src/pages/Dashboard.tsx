@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import { BentoGrid } from '../components/BentoGrid';
 import { LoadingScreen } from '../components/LoadingScreen';
+import { MaintenanceView } from '../components/MaintenanceView';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -13,11 +14,12 @@ export const Dashboard: React.FC = () => {
   const [result, setResult] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [currentAnalyzeUrl, setCurrentAnalyzeUrl] = useState<string>('');
+  const [isMaintenance, setIsMaintenance] = useState(false);
 
   const fetchHistory = async () => {
     if (user) {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+        const apiUrl = import.meta.env.VITE_API_URL;
         const response = await fetch(`${apiUrl}/api/history/${user.uid}`);
         const data = await response.json();
         if (Array.isArray(data)) {
@@ -44,7 +46,7 @@ export const Dashboard: React.FC = () => {
     setResult(null);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      const apiUrl = import.meta.env.VITE_API_URL;
       const response = await fetch(`${apiUrl}/api/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,6 +61,12 @@ export const Dashboard: React.FC = () => {
       });
 
       const data = await response.json();
+      
+      if (response.status === 503 || data.error === 'MAINTENANCE_ERROR') {
+        setIsMaintenance(true);
+        return;
+      }
+
       if (!response.ok) throw new Error(data.error || 'Failed to analyze URL');
 
       // Handle both response shapes: direct object or { success, data } wrapper
@@ -84,6 +92,7 @@ export const Dashboard: React.FC = () => {
     handleAnalyze(url);
   };
 
+  if (isMaintenance) return <MaintenanceView onRetry={() => setIsMaintenance(false)} />;
   if (loading) return <LoadingScreen />;
   if (result) return (
     <BentoGrid

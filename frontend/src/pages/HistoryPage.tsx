@@ -12,7 +12,7 @@ export const HistoryPage: React.FC = () => {
     const fetchHistory = async () => {
       if (!user) return;
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+        const apiUrl = import.meta.env.VITE_API_URL;
         const response = await fetch(`${apiUrl}/api/history/${user.uid}`);
         const data = await response.json();
         setHistory(Array.isArray(data) ? data : []);

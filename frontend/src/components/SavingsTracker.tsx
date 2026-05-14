@@ -15,7 +15,7 @@ export const SavingsTracker: React.FC = () => {
     const fetchSavings = async () => {
       if (user?.uid) {
         try {
-          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+          const apiUrl = import.meta.env.VITE_API_URL;
           const response = await fetch(`${apiUrl}/api/user/${user.uid}/savings`);
           const data = await response.json();
           if (data && typeof data.savings === 'number') {
