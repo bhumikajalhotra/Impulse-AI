@@ -426,7 +426,7 @@ CRITICAL RULES:
 7. price must always include ₹ symbol or "₹ Check retailer" if unknown.`;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-flash-latest',
       systemInstruction: systemInstruction,
     });
 
