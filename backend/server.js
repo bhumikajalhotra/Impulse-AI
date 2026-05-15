@@ -249,12 +249,12 @@ Note: The user manually provided these details because the retailer blocked the 
             ...stealthHeaders,
             'Accept': 'application/json',
             'X-Return-Format': 'markdown',
-            'X-Proxy-Location': proxyRegion,   // Jina proxy region header
-            'X-Proxy': 'residential',            // Request residential proxy pool
-            'X-Wait-For': 'networkidle',         // Wait for JS to finish rendering
-            'X-With-Generated-Alt': 'true',      // Generate alt text for images
-            'X-Remove-Selector': 'nav,footer,header,script,style,#nav-belt', // Clean output
-            'Authorization': `Bearer ${process.env.ANAKIN_API_KEY || ''}`,
+            // 'X-Proxy-Location': proxyRegion,   // Requires paid Jina API key
+            // 'X-Proxy': 'residential',          // Requires paid Jina API key
+            'X-Wait-For': 'networkidle',
+            // 'X-With-Generated-Alt': 'true',    // Requires paid Jina API key
+            'X-Remove-Selector': 'nav,footer,header,script,style,#nav-belt',
+            // 'Authorization': `Bearer ${process.env.JINA_API_KEY || ''}`, // Use Jina key if available
           },
           timeout: 45000,
           validateStatus: (status) => status < 500, // Don't throw on 4xx so we can check status
@@ -266,6 +266,11 @@ Note: The user manually provided these details because the retailer blocked the 
           err.status = response.status;
           err.isBlocked = true;
           throw err;
+        }
+
+        // Throw on auth errors (like 401) so it doesn't get treated as valid text
+        if (response.status === 401) {
+          throw new Error(`Jina Auth Error: ${JSON.stringify(response.data)}`);
         }
 
         let text = '';
@@ -373,12 +378,24 @@ Note: All scraping strategies were blocked. Use your general knowledge about thi
       }
     }
 
+    // ── Deterministic Image Extraction ──
+    let extractedImage = null;
+    if (markdownText) {
+      // Look for the first valid Markdown image or direct image URL
+      const imgMatch = markdownText.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/) || markdownText.match(/Image URL:\s*(https?:\/\/[^\s]+)/);
+      if (imgMatch && imgMatch[1]) {
+        // Exclude tracking pixels/tiny gifs
+        if (!imgMatch[1].includes('pixel') && !imgMatch[1].includes('.gif')) {
+          extractedImage = imgMatch[1];
+        }
+      }
+    }
+
     // ── Markdown Cleaning ──
     if (markdownText && !isManualMode) {
+      // Keep only essential text to save tokens, but DO NOT strip images so Gemini can extract the productImage
       markdownText = markdownText
         .replace(/<[^>]*>?/gm, '')                        // Strip HTML tags
-        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')        // Strip markdown links
-        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '')         // Strip images
         .replace(/\n{3,}/g, '\n\n')                        // Collapse whitespace
         .trim();
     }
@@ -458,9 +475,8 @@ ${markdownText.substring(0, 8000)}`;
         parsedResult.productImage === 'N/A' ||
         parsedResult.productImage === '' ||
         parsedResult.productImage.includes('pollinations.ai')) {
-      // Return null so the frontend can display a clean, branded "Manual Entry" placeholder
-      // instead of a hallucinated, irrelevant AI image.
-      parsedResult.productImage = null;
+      // Return the deterministically extracted image, or null so the frontend can display a clean placeholder
+      parsedResult.productImage = extractedImage || null;
     }
 
     // Cap unrealistic scores for unverified scrapes
