@@ -170,12 +170,18 @@ export const Dashboard: React.FC = () => {
                   onClick={() => handleAnalyze(item.url)}
                   className="flex flex-col items-start gap-3 bg-card hover:bg-card/80 border border-border rounded-2xl p-4 min-w-[200px] max-w-[200px] transition-all hover:scale-[1.03] hover:border-pink-500/30 text-left snap-start shadow-sm shrink-0 group"
                 >
-                  <div className="w-full h-24 bg-background rounded-xl overflow-hidden relative border border-border/50">
-                    <img 
-                      src={item.productImage || 'https://image.pollinations.ai/prompt/shopping?nologo=true'} 
-                      alt={item.productName} 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                    />
+                  <div className="w-full h-24 bg-background rounded-xl overflow-hidden relative border border-border/50 flex items-center justify-center">
+                    {item.productImage ? (
+                      <img 
+                        src={item.productImage} 
+                        alt={item.productName}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-muted-foreground/40">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="2" x2="22" y1="2" y2="22"/><path d="M10.41 10.41a2 2 0 1 1-2.83-2.83"/><line x1="13.5" x2="6" y1="13.5" y2="21"/><line x1="18" x2="21" y1="12" y2="15"/><path d="M3.59 3.59A1.99 1.99 0 0 0 3 5v14a2 2 0 0 0 2 2h14c.55 0 1.05-.22 1.41-.59"/><path d="M21 15V5a2 2 0 0 0-2-2H9"/></svg>
+                      </div>
+                    )}
                   </div>
                   <div className="w-full">
                     <h4 className="font-semibold text-foreground truncate w-full text-sm">{item.productName}</h4>

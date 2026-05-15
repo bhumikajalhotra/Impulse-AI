@@ -405,7 +405,7 @@ GUARDRAIL: If product data is incomplete or scraping failed, infer the product f
 Return ONLY a valid JSON object matching this EXACT schema:
 {
   "productName": "string",
-  "productImage": "string (real URL from scraped data, or Pollinations fallback)",
+  "productImage": "string (real URL from scraped data, or null)",
   "price": "string (with ₹ symbol)",
   "verdict": "BUY IT" | "DROP IT",
   "impulseScore": number (1-100),
@@ -420,7 +420,7 @@ CRITICAL RULES:
 1. NO markdown, NO backticks, NO code fences. Return raw JSON only.
 2. Tone: Gen-Z, witty, slightly judgmental, culturally Indian.
 3. If scraped text is blocked/generic, guess the product from URL slug.
-4. Image URL: extract from scraped data. Fallback to: https://image.pollinations.ai/prompt/{encoded_product_name}%20product%20white%20background?width=400&height=400&nologo=true
+4. Image URL: extract from scraped data. If no image is found, return null.
 5. sustainabilityScore: 30-70 for average products. Not 100 unless explicitly eco-certified.
 6. NEVER return "Error Connecting" as productName or "???" as price.
 7. price must always include ₹ symbol or "₹ Check retailer" if unknown.`;
@@ -453,11 +453,14 @@ ${markdownText.substring(0, 8000)}`;
     // ── Post-processing Guardrails ──
     // Sanitize image URL
     if (!parsedResult.productImage ||
+        parsedResult.productImage === 'null' ||
         parsedResult.productImage.includes('undefined') ||
         parsedResult.productImage === 'N/A' ||
-        parsedResult.productImage === '') {
-      const encodedName = encodeURIComponent(parsedResult.productName || 'product');
-      parsedResult.productImage = `https://image.pollinations.ai/prompt/${encodedName}%20product%20white%20background?width=400&height=400&nologo=true`;
+        parsedResult.productImage === '' ||
+        parsedResult.productImage.includes('pollinations.ai')) {
+      // Return null so the frontend can display a clean, branded "Manual Entry" placeholder
+      // instead of a hallucinated, irrelevant AI image.
+      parsedResult.productImage = null;
     }
 
     // Cap unrealistic scores for unverified scrapes

@@ -60,11 +60,17 @@ export const HistoryPage: React.FC = () => {
             className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl hover:border-pink-500/30 transition-all group flex flex-col"
           >
             <div className="h-48 bg-white/5 relative border-b border-border p-4 flex items-center justify-center">
-              <img 
-                src={item.productImage || 'https://image.pollinations.ai/prompt/shopping?nologo=true'} 
-                alt={item.productName} 
-                className="max-h-full object-contain group-hover:scale-105 transition-transform duration-500" 
-              />
+              {item.productImage ? (
+                <img 
+                  src={item.productImage} 
+                  alt={item.productName} 
+                  className="max-h-full object-contain group-hover:scale-105 transition-transform duration-500" 
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-muted-foreground/40">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="2" x2="22" y1="2" y2="22"/><path d="M10.41 10.41a2 2 0 1 1-2.83-2.83"/><line x1="13.5" x2="6" y1="13.5" y2="21"/><line x1="18" x2="21" y1="12" y2="15"/><path d="M3.59 3.59A1.99 1.99 0 0 0 3 5v14a2 2 0 0 0 2 2h14c.55 0 1.05-.22 1.41-.59"/><path d="M21 15V5a2 2 0 0 0-2-2H9"/></svg>
+                </div>
+              )}
               <div className="absolute top-4 right-4">
                 <span className={`text-xs font-bold px-3 py-1.5 rounded-full uppercase shadow-lg backdrop-blur-md ${item.verdict === 'BUY IT' ? 'bg-green-500/20 text-green-500 border border-green-500/30' : 'bg-red-500/20 text-red-500 border border-red-500/30'}`}>
                   {item.verdict}
