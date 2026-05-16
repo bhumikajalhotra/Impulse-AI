@@ -1,80 +1,52 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight, Clock } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'react-hot-toast';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Zap, Target, Activity, LinkIcon, ArrowRight } from 'lucide-react';
 import { BentoGrid } from '../components/BentoGrid';
 import { LoadingScreen } from '../components/LoadingScreen';
-import { MaintenanceView } from '../components/MaintenanceView';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [result, setResult] = useState<any>(null);
-  const [history, setHistory] = useState<any[]>([]);
-  const [currentAnalyzeUrl, setCurrentAnalyzeUrl] = useState<string>('');
-  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [currentAnalyzeUrl, setCurrentAnalyzeUrl] = useState('');
 
-  const fetchHistory = async () => {
-    if (user) {
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL;
-        const response = await fetch(`${apiUrl}/api/history/${user.uid}`);
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setHistory(data.slice(0, 5));
-        } else {
-          setHistory([]);
-        }
-      } catch (error) {
-        console.error("Failed to fetch history:", error);
-      }
-    }
-  };
+  const handleAnalyze = async (manualUrl?: string, manualName?: string, manualPrice?: string) => {
+    const finalUrl = manualUrl || url;
+    if (!finalUrl && !manualName) return;
 
-  useEffect(() => {
-    fetchHistory();
-  }, [user]);
-
-  const handleAnalyze = async (analyzeUrl: string, manualName?: string, manualPrice?: string) => {
-    const vibe = localStorage.getItem('impulse_vibe') || 'Savage';
-    const budget = localStorage.getItem('impulse_budget') || '5000';
-    
-    setCurrentAnalyzeUrl(analyzeUrl);
     setLoading(true);
-    setResult(null);
-
+    setCurrentAnalyzeUrl(finalUrl);
+    
     try {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
       const apiUrl = import.meta.env.VITE_API_URL;
       const response = await fetch(`${apiUrl}/api/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          url: analyzeUrl, 
-          vibe, 
+          url: finalUrl, 
           userId: user?.uid,
-          budget: parseFloat(budget),
-          productName: manualName,
-          manualPrice: manualPrice
+          manualName,
+          manualPrice
         }),
       });
 
-      const data = await response.json();
+      if (!response.ok) throw new Error('Analysis failed');
       
-      if (response.status === 503 || data.error === 'MAINTENANCE_ERROR') {
-        setIsMaintenance(true);
-        return;
-      }
-
-      if (!response.ok) throw new Error(data.error || 'Failed to analyze URL');
-
-      // Handle both response shapes: direct object or { success, data } wrapper
-      const analysisResult = data.data || data;
-      setResult(analysisResult);
-      setTimeout(fetchHistory, 1000);
-    } catch (err: any) {
-      toast.error(err.message);
+      const data = await response.json();
+      setResult(data);
+      toast.success('REALITY CHECK COMPLETE ⚡', {
+        style: { background: '#E1FF00', color: '#000', border: 'none', fontWeight: 'bold' }
+      });
+    } catch {
+      toast.error('AI IS TOO STUNNED TO SPEAK. TRY AGAIN 💀', {
+        style: { background: '#000', color: '#ff3366', border: '1px solid #ff3366' }
+      });
     } finally {
       setLoading(false);
     }
@@ -82,122 +54,231 @@ export const Dashboard: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.trim()) return;
-    
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      toast.error("That doesn't look like a shopping link. Are you trying to trick me?");
-      return;
-    }
-    
-    handleAnalyze(url);
+    handleAnalyze();
   };
 
-  if (isMaintenance) return <MaintenanceView onRetry={() => setIsMaintenance(false)} />;
-  if (loading) return <LoadingScreen />;
   if (result) return (
-    <BentoGrid
-      result={result}
-      onReset={() => setResult(null)}
-      onSubmitManual={(name, price) => handleAnalyze(currentAnalyzeUrl, name, price)}
-    />
+    <AnimatePresence mode="wait">
+      <motion.div
+        key="results"
+        initial={{ opacity: 0, filter: "blur(10px)" }}
+        animate={{ opacity: 1, filter: "blur(0px)" }}
+        exit={{ opacity: 0, filter: "blur(10px)" }}
+        transition={{ duration: 0.5 }}
+        className="h-full"
+      >
+        <BentoGrid
+          result={result}
+          onReset={() => setResult(null)}
+          onSubmitManual={(name, price) => handleAnalyze(currentAnalyzeUrl, name, price)}
+        />
+      </motion.div>
+    </AnimatePresence>
   );
 
-  const firstName = user?.displayName?.split(' ')[0] || 'there';
+  const containerVariants: import('framer-motion').Variants = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants: import('framer-motion').Variants = {
+    hidden: { opacity: 0, y: 50, rotateX: -20 },
+    show: { opacity: 1, y: 0, rotateX: 0, transition: { type: "spring", stiffness: 80, damping: 20 } }
+  };
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[75vh] text-center">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full"
-      >
-        <div className="mb-6 inline-block bg-pink-500/10 px-4 py-2 rounded-full border border-pink-500/20 text-pink-600 dark:text-pink-400 font-bold text-sm shadow-sm backdrop-blur-sm">
-          Hey {firstName}, ready for a reality check?
-        </div>
-        <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-6 leading-[0.95]">
-          Paste the link. <br/>
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600">
-            Get the truth.
-          </span>
-        </h1>
-        <p className="text-lg text-muted-foreground mb-12 font-medium max-w-xl mx-auto">
-          Girl math genius move or total financial disaster? Let the AI decide.
-        </p>
+    <div className="flex flex-col xl:flex-row w-full min-h-full text-white font-sans selection:bg-primary/30 relative">
+      <AnimatePresence>
+        {loading && <LoadingScreen />}
+      </AnimatePresence>
+      
+      {/* ─── Hero Section (Left/Center) ─── */}
+      <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:px-20 relative py-20 xl:py-0 overflow-visible">
+        
+        {/* Floating Mascot Elements (Asymmetrical, Overlapping) */}
+        <motion.div 
+          initial={{ opacity: 0, x: -100, y: 50, scale: 0.8 }}
+          animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+          transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
+          className="absolute -top-10 -right-20 lg:-right-32 lg:-top-20 w-[400px] h-[400px] md:w-[600px] md:h-[600px] opacity-80 z-0 pointer-events-none drop-shadow-[0_20px_50px_rgba(225,255,0,0.2)]"
+        >
+          <motion.img 
+            animate={{ y: [0, -20, 0], rotate: [0, 2, -2, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            src="/mascot.png" 
+            alt="Impulse AI Mascot" 
+            className="w-full h-full object-contain" 
+          />
+        </motion.div>
 
-        <form onSubmit={handleSubmit} className="relative group mb-16 max-w-2xl mx-auto">
-          {/* Glow behind input */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-pink-500 to-purple-500 rounded-2xl blur-lg opacity-0 group-hover:opacity-20 transition duration-500"></div>
+        {/* Decorative Grid Lines */}
+        <div className="absolute left-10 top-0 bottom-0 w-[1px] bg-white/5 pointer-events-none hidden lg:block" />
+        <div className="absolute left-[20%] top-0 bottom-0 w-[1px] bg-white/5 pointer-events-none hidden lg:block" />
+
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="space-y-6 sm:space-y-8 relative z-10 max-w-4xl pt-10 lg:pt-0"
+        >
+          <motion.div variants={itemVariants} className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full border border-primary/50 bg-primary/10 text-primary text-xs font-black tracking-[0.3em] uppercase shadow-[0_0_20px_rgba(225,255,0,0.2)] backdrop-blur-md">
+            <motion.div animate={{ opacity: [1, 0.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+              <Zap className="w-4 h-4 fill-primary" />
+            </motion.div>
+            System Online
+          </motion.div>
           
-          <div className="relative flex items-center bg-card rounded-2xl p-2 border border-border shadow-lg">
-            <div className="pl-4 text-pink-500">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <input
-              type="url"
-              required
-              placeholder="Paste Amazon, Myntra, or any product link..."
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="w-full bg-transparent border-none text-foreground px-4 py-4 focus:outline-none placeholder:text-muted-foreground text-base rounded-xl"
-            />
-            <button
-              type="submit"
-              className="bg-foreground text-background font-bold rounded-xl px-8 py-4 hover:scale-[1.03] active:scale-[0.97] transition-all flex items-center gap-2 shadow-md shrink-0"
-            >
-              Analyze
-              <ArrowRight className="w-5 h-5" />
-            </button>
-          </div>
-        </form>
+          <motion.h1 variants={itemVariants} className="text-6xl sm:text-7xl md:text-[7rem] lg:text-[8rem] font-display font-black tracking-tighter leading-[0.85] uppercase text-white drop-shadow-2xl relative z-10">
+            REALITY CHECK <br/>
+            <span className="text-primary glow-text relative inline-block animate-glitch-text mt-2">
+              INCOMING.
+              <motion.div 
+                className="absolute inset-0 bg-primary/20 blur-[30px] -z-10"
+                animate={{ opacity: [0.3, 0.8, 0.3], scale: [1, 1.05, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+            </span>
+          </motion.h1>
+          <motion.p variants={itemVariants} className="text-lg sm:text-xl md:text-2xl font-medium text-white/60 max-w-2xl tracking-tight leading-relaxed">
+            Paste a product link and let AI decide your fate. <br className="hidden md:block"/>
+            Financial ruin or a certified need? <span className="text-white/90 font-bold">Let's find out.</span>
+          </motion.p>
 
-        {history.length > 0 && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="w-full mt-8"
-          >
-            <div className="flex items-center gap-2 text-muted-foreground mb-6 text-sm font-bold uppercase tracking-widest justify-center">
-              <Clock className="w-4 h-4 text-pink-500" />
-              <span>Recent Impulses</span>
-            </div>
-            
-            <div className="flex overflow-x-auto gap-4 pb-4 px-2 w-full snap-x scrollbar-hide justify-center">
-              {history.map((item, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleAnalyze(item.url)}
-                  className="flex flex-col items-start gap-3 bg-card hover:bg-card/80 border border-border rounded-2xl p-4 min-w-[200px] max-w-[200px] transition-all hover:scale-[1.03] hover:border-pink-500/30 text-left snap-start shadow-sm shrink-0 group"
+          {/* ─── Brutalist Input Bar ─── */}
+          <motion.div variants={itemVariants} className="w-full max-w-3xl mt-10 sm:mt-16 relative perspective-1000">
+            <form onSubmit={handleSubmit} className="relative flex flex-col sm:flex-row items-center group gap-4 sm:gap-0 z-20">
+              <div className="absolute inset-0 bg-primary/30 blur-[50px] opacity-0 group-focus-within:opacity-100 transition-opacity duration-700 pointer-events-none hidden sm:block" />
+              
+              <div className="relative flex flex-col sm:flex-row items-center w-full bg-black/80 backdrop-blur-3xl border-2 border-white/10 group-focus-within:border-primary transition-all duration-500 rounded-3xl sm:rounded-full overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.8)] p-3 sm:p-2">
+                <div className="pl-6 text-primary hidden sm:block">
+                  <LinkIcon className="w-7 h-7" />
+                </div>
+                <input 
+                  type="url" 
+                  required
+                  placeholder="Paste product link to get roasted..."
+                  className="w-full sm:flex-1 bg-transparent border-none text-white focus:outline-none py-5 sm:py-6 px-6 text-lg sm:text-xl font-bold placeholder:text-white/20 placeholder:font-medium text-center sm:text-left rounded-2xl sm:rounded-none bg-white/5 sm:bg-transparent"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                />
+                <motion.button 
+                  whileHover={{ scale: 1.02, backgroundColor: "#fff" }}
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={loading}
+                  className="w-full sm:w-auto bg-primary text-black sm:h-[calc(100%-16px)] sm:absolute right-2 py-5 sm:py-0 px-10 font-black text-sm uppercase tracking-[0.2em] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group/btn rounded-2xl sm:rounded-full shadow-[inset_0_-4px_0_rgba(0,0,0,0.2)]"
                 >
-                  <div className="w-full h-24 bg-background rounded-xl overflow-hidden relative border border-border/50 flex items-center justify-center">
-                    {item.productImage ? (
-                      <img 
-                        src={item.productImage} 
-                        alt={item.productName}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-muted-foreground/40">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="2" x2="22" y1="2" y2="22"/><path d="M10.41 10.41a2 2 0 1 1-2.83-2.83"/><line x1="13.5" x2="6" y1="13.5" y2="21"/><line x1="18" x2="21" y1="12" y2="15"/><path d="M3.59 3.59A1.99 1.99 0 0 0 3 5v14a2 2 0 0 0 2 2h14c.55 0 1.05-.22 1.41-.59"/><path d="M21 15V5a2 2 0 0 0-2-2H9"/></svg>
-                      </div>
-                    )}
-                  </div>
-                  <div className="w-full">
-                    <h4 className="font-semibold text-foreground truncate w-full text-sm">{item.productName}</h4>
-                    <div className="flex justify-between items-center mt-2 w-full">
-                      <span className="text-pink-500 font-bold text-sm">{item.price}</span>
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${item.verdict === 'BUY IT' ? 'bg-green-500/10 text-green-600 dark:text-green-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'}`}>
-                        {item.verdict}
-                      </span>
-                    </div>
-                  </div>
-                </button>
+                  {loading ? 'HACKING...' : 'GET THE TRUTH'}
+                  {!loading && <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-2 transition-transform" />}
+                </motion.button>
+              </div>
+            </form>
+
+            {/* Quick Chips - Asymmetrical layout */}
+            <div className="flex flex-wrap gap-3 mt-8 justify-center sm:justify-start pl-0 sm:pl-6 relative z-10">
+              <span className="text-[10px] font-black uppercase tracking-widest text-white/30 flex items-center mr-2">Or try:</span>
+              {['Amazon', 'Myntra', 'boAt', 'Nike', 'Zara'].map((brand, i) => (
+                <motion.button 
+                  whileHover={{ scale: 1.05, y: -2, borderColor: "rgba(225,255,0,0.5)", color: "#E1FF00", backgroundColor: "rgba(225,255,0,0.1)" }}
+                  whileTap={{ scale: 0.95 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 + (i * 0.1) }}
+                  key={brand} 
+                  type="button" 
+                  onClick={() => setUrl(`https://www.${brand.toLowerCase()}.com`)} 
+                  className="px-5 py-2.5 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 transition-all text-xs font-black text-white/50 tracking-wider uppercase shadow-lg"
+                >
+                  {brand}
+                </motion.button>
               ))}
             </div>
           </motion.div>
-        )}
+        </motion.div>
+      </div>
+
+      {/* ─── Right Panel (Stats & Personality - Overlapping & Handcrafted) ─── */}
+      <motion.div 
+        initial={{ opacity: 0, x: 50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 1, delay: 0.4, type: "spring" }}
+        className="w-full xl:w-[450px] flex flex-col gap-6 xl:gap-8 xl:border-l border-white/5 mt-16 xl:mt-0 px-6 sm:px-12 xl:px-10 py-10 relative z-20 bg-black/20 backdrop-blur-xl"
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50 pointer-events-none" />
+        
+        {/* Money Saved Card (Overlapping layout) */}
+        <motion.div 
+          whileHover={{ scale: 1.02, y: -5 }}
+          className="bg-gradient-to-br from-black/80 to-surface/80 border border-primary/20 rounded-[2.5rem] p-8 relative overflow-hidden group shadow-[0_20px_40px_rgba(0,0,0,0.5)] cursor-default transform translate-x-0 xl:-translate-x-12 z-20"
+        >
+          <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-[50px] -mr-10 -mt-10 group-hover:bg-primary/20 transition-colors duration-700 pointer-events-none" />
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] opacity-50 pointer-events-none" />
+          
+          <div className="flex items-center gap-4 mb-6 text-primary relative z-10">
+            <div className="p-3 bg-primary/10 rounded-xl border border-primary/20">
+              <Target className="w-6 h-6" />
+            </div>
+            <h3 className="font-black text-xs tracking-[0.2em] uppercase">Saved Today</h3>
+          </div>
+          <p className="text-5xl sm:text-6xl font-black font-display tracking-tighter relative z-10 text-white drop-shadow-md">₹12,450</p>
+          <p className="text-sm text-white/50 mt-4 font-medium relative z-10">from 3 aborted impulse buys.</p>
+        </motion.div>
+
+        {/* AI Personality Selector */}
+        <motion.div 
+          whileHover={{ scale: 1.02 }}
+          className="bg-accent/5 border border-accent/20 rounded-[2.5rem] p-8 shadow-[0_20px_40px_rgba(0,0,0,0.3)] relative z-10 backdrop-blur-md"
+        >
+          <div className="flex items-center gap-4 mb-8 text-accent">
+            <div className="p-3 bg-accent/10 rounded-xl border border-accent/20">
+              <Activity className="w-6 h-6" />
+            </div>
+            <h3 className="font-black text-xs tracking-[0.2em] uppercase">Current Vibe</h3>
+          </div>
+          <div className="space-y-4">
+            <motion.div 
+              whileTap={{ scale: 0.98 }}
+              className="bg-gradient-to-r from-accent/20 to-accent/5 border border-accent/50 text-accent px-6 py-5 rounded-2xl text-xs font-black uppercase tracking-[0.1em] flex justify-between items-center cursor-pointer shadow-[0_10px_20px_rgba(139,92,246,0.2)]"
+            >
+              <span>Savage Reality Check</span>
+              <motion.div 
+                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_10px_rgba(139,92,246,0.8)]" 
+              />
+            </motion.div>
+            <motion.div 
+              whileHover={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+              whileTap={{ scale: 0.98 }}
+              className="bg-black/40 border border-white/5 text-white/30 px-6 py-5 rounded-2xl text-xs font-black uppercase tracking-[0.1em] flex justify-between items-center cursor-pointer transition-colors"
+            >
+              <span>Girl Math Enabler</span>
+            </motion.div>
+          </div>
+        </motion.div>
+
+        {/* Recent Roasts */}
+        <motion.div 
+          whileHover={{ scale: 1.01 }}
+          className="flex-1 bg-black/60 border border-white/5 rounded-[2.5rem] p-8 flex flex-col shadow-2xl relative z-0 transform translate-x-0 xl:translate-x-8"
+        >
+          <h3 className="font-black text-xs tracking-[0.2em] uppercase text-white/40 mb-8 flex items-center gap-4">
+            <span className="w-8 h-[1px] bg-white/20" />
+            Recent Roasts
+          </h3>
+          <div className="flex-1 flex flex-col gap-6">
+            <motion.div whileHover={{ x: 5 }} className="border-l-4 border-red-500/80 pl-5 py-2 transition-transform cursor-default">
+              <p className="text-sm text-white/80 font-medium leading-relaxed italic">"You don't need another mechanical keyboard. Your typing speed is still 40WPM."</p>
+              <p className="text-[10px] text-red-400 mt-3 uppercase tracking-widest font-black">Keychron K2 • ₹8,999</p>
+            </motion.div>
+            <motion.div whileHover={{ x: 5 }} className="border-l-4 border-primary/80 pl-5 py-2 transition-transform cursor-default">
+              <p className="text-sm text-white/80 font-medium leading-relaxed italic">"It's an investment in your mental health. Girl math approved."</p>
+              <p className="text-[10px] text-primary/70 mt-3 uppercase tracking-widest font-black">Matcha Set • ₹2,499</p>
+            </motion.div>
+          </div>
+        </motion.div>
       </motion.div>
+
     </div>
   );
 };

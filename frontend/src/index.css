@@ -1,43 +1,105 @@
+@import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700,900&f[]=satoshi@400,500,700,900&display=swap');
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-border: var(--border);
-  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: #E1FF00; /* Neon Acid Yellow */
+  --color-secondary: #ccff00; /* Electric Lime */
+  --color-accent: #8B5CF6; /* Muted Violet */
+  --color-cyan: #22d3ee; /* Subtle Cyan */
+  --color-background: #09090b; /* Charcoal Black */
+  --color-surface: #0f172a; /* Deep Navy Gradient / Surface */
+  --color-surface-secondary: #1e293b;
+  --color-text: #f8fafc;
+  --color-text-muted: #94a3b8;
+  
+  --font-sans: 'Satoshi', system-ui, sans-serif;
+  --font-display: 'Clash Display', sans-serif;
 }
 
 @layer base {
   :root {
-    --background: #fafafa;
-    --foreground: #09090b;
-    --card: #ffffff;
-    --border: #e4e4e7;
-    --muted-foreground: #71717a;
-  }
-
-  .dark {
-    --background: #09090b;
-    --foreground: #fafafa;
-    --card: #18181b;
-    --border: #27272a;
-    --muted-foreground: #a1a1aa;
+    --bg-color: #050505; /* Deeper black */
+    --surface-color: rgba(15, 23, 42, 0.4);
+    --surface-secondary-color: rgba(30, 41, 59, 0.4);
+    --text-color: #f8fafc;
+    --border-color: rgba(225, 255, 0, 0.1);
   }
 
   body {
-    background-color: var(--background);
-    color: var(--foreground);
-    @apply transition-colors duration-300;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    color-scheme: dark;
+  }
+
+  /* Noise Overlay */
+  .noise-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.05;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+
+  /* Scanlines */
+  .scanlines {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+    background-size: 100% 4px;
+    z-index: 40;
+    pointer-events: none;
+    opacity: 0.2;
+  }
+
+  /* Vignette */
+  .vignette {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle, transparent 50%, rgba(0,0,0,0.8) 100%);
+    pointer-events: none;
+    z-index: 45;
+  }
+
+  /* Grid Texture */
+  .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-size: 40px 40px;
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Layered Glassmorphism */
+  .glass-card {
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.5) 0%, rgba(9, 9, 11, 0.8) 100%);
+    backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 20px 40px -10px rgba(0, 0, 0, 0.8);
+  }
+  
+  .glass-panel {
+    background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.6) 100%);
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.9);
+  }
+
+  .neon-glow {
+    filter: drop-shadow(0 0 15px rgba(225, 255, 0, 0.5));
   }
 }
 
 @layer utilities {
   .bg-dot-pattern {
-    background-image: radial-gradient(circle, var(--border) 1px, transparent 1px);
-    background-size: 24px 24px;
+    background-image: radial-gradient(circle, rgba(225, 255, 0, 0.1) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
 }
 
@@ -50,24 +112,35 @@
   scrollbar-width: none;
 }
 
-/* Neon glow text effect for verdict */
-.neon-text-green {
-  text-shadow: 0 0 20px rgba(52, 211, 153, 0.8), 0 0 60px rgba(52, 211, 153, 0.4);
-}
-.neon-text-red {
-  text-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 0 0 60px rgba(239, 68, 68, 0.4);
-}
-
 /* Smooth font rendering */
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism base */
-.glass {
-  background: rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Glitch Animation */
+@keyframes glitch {
+  0% { transform: translate(0) }
+  20% { transform: translate(-4px, 4px) }
+  40% { transform: translate(-4px, -4px) }
+  60% { transform: translate(4px, 4px) }
+  80% { transform: translate(4px, -4px) }
+  100% { transform: translate(0) }
+}
+
+@keyframes glitch-color {
+  0% { text-shadow: 2px 0 red, -2px 0 cyan; }
+  20% { text-shadow: -2px 0 red, 2px 0 cyan; }
+  40% { text-shadow: 2px 0 red, -2px 0 cyan; }
+  60% { text-shadow: -2px 0 red, 2px 0 cyan; }
+  80% { text-shadow: 2px 0 red, -2px 0 cyan; }
+  100% { text-shadow: -2px 0 red, 2px 0 cyan; }
+}
+
+.animate-glitch {
+  animation: glitch 0.2s cubic-bezier(.25, .46, .45, .94) both infinite;
+}
+
+.animate-glitch-text {
+  animation: glitch-color 0.15s infinite alternate;
 }

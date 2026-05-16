@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from 'sonner';
 import { useAuth } from './contexts/AuthContext';
 import { MainLayout } from './layouts/MainLayout';
 import { AuthPage } from './pages/AuthPage';
@@ -22,7 +22,13 @@ const AuthGuard = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <BrowserRouter>
-      <Toaster position="top-center" toastOptions={{ style: { background: '#333', color: '#fff', borderRadius: '10px' } }} />
+      <Toaster 
+        position="top-center" 
+        toastOptions={{ 
+          className: 'bg-card border-border text-foreground font-sans rounded-xl shadow-lg',
+          duration: 4000
+        }} 
+      />
       
       <Routes>
         <Route path="/login" element={<AuthPage />} />

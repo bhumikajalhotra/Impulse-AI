@@ -1,136 +1,176 @@
 import React from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, History, Settings, User, LogOut, Sun, Moon, Laptop } from 'lucide-react';
+import { ShieldAlert, History, Skull, Settings, BarChart2, Zap, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
 import { cn } from '../lib/utils';
 import { SavingsTracker } from '../components/SavingsTracker';
-import { Footer } from '../components/Footer';
 
 export const MainLayout: React.FC = () => {
   const { user, logout } = useAuth();
-  const { theme, setTheme } = useTheme();
   const location = useLocation();
 
   const NAV_ITEMS = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Reality Check', path: '/dashboard', icon: ShieldAlert },
     { name: 'History', path: '/history', icon: History },
-    { name: 'Profile', path: '/profile', icon: User },
+    { name: 'Personality', path: '/profile', icon: Skull },
+    { name: 'Stats', path: '/stats', icon: BarChart2 },
     { name: 'Settings', path: '/settings', icon: Settings },
   ];
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden relative">
-      {/* Subtle dot pattern overlay */}
-      <div className="absolute inset-0 bg-dot-pattern opacity-40 dark:opacity-20 pointer-events-none" />
-
-      {/* Ambient Glow Orbs — positioned behind everything */}
-      <div className="absolute -top-32 -right-32 w-[600px] h-[600px] bg-pink-400/15 dark:bg-pink-500/10 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-purple-400/15 dark:bg-purple-500/10 rounded-full blur-[130px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-violet-400/10 dark:bg-violet-500/5 rounded-full blur-[120px] pointer-events-none" />
-
-      {/* ─── Sidebar ─── */}
-      <aside className="w-72 m-3 bg-card border border-border rounded-2xl flex-col hidden md:flex z-20 shadow-sm">
+    <div className="flex h-screen bg-background text-foreground overflow-hidden relative font-sans selection:bg-primary/30 dark">
+      {/* Background Systems */}
+      <div className="vignette" />
+      <div className="scanlines" />
+      <div className="grid-bg opacity-30" />
+      
+      {/* Cinematic Lighting Backgrounds */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-accent/10 rounded-full blur-[200px] pointer-events-none mix-blend-screen" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[150px] pointer-events-none mix-blend-screen" />
+      <div className="absolute top-[40%] right-[30%] w-[20%] h-[20%] bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
+      
+      {/* Noise Overlay */}
+      <div className="noise-overlay" />
+      
+      {/* Left Sidebar (Luxury Gaming Launcher) */}
+      <aside className="w-24 md:w-80 m-4 lg:m-6 bg-black/40 backdrop-blur-3xl border-r border-white/5 flex-col hidden md:flex z-20 shadow-[20px_0_40px_rgba(0,0,0,0.5)] transition-all duration-700 overflow-hidden relative rounded-3xl group/sidebar">
+        {/* Inner glow */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+        <div className="absolute -left-[50%] top-[20%] w-full h-[30%] bg-primary/10 blur-[100px] pointer-events-none opacity-50" />
+        
         {/* Brand */}
-        <div className="px-7 pt-8 pb-6">
-          <h1 className="text-3xl font-black tracking-tighter">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600">Impulse</span>
-            <span className="text-foreground">.ai</span>
+        <div className="px-8 pt-12 pb-8 flex flex-col items-center relative z-10">
+          <motion.div 
+            whileHover={{ scale: 1.1, rotate: [0, -10, 10, 0] }}
+            className="w-20 h-20 bg-gradient-to-br from-black to-surface border border-white/10 rounded-3xl flex items-center justify-center mb-6 cursor-pointer shadow-[inset_0_2px_10px_rgba(255,255,255,0.1),_0_10px_30px_rgba(225,255,0,0.15)] transition-all group/logo relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-primary/20 -translate-y-[100%] group-hover/logo:translate-y-0 transition-transform duration-500" />
+            <Zap className="text-primary w-10 h-10 relative z-10 drop-shadow-[0_0_10px_rgba(225,255,0,0.8)]" />
+          </motion.div>
+          <h1 className="text-4xl font-display font-black tracking-[-0.08em] text-white animate-glitch-text">
+            impulse<span className="text-primary glow-text">.ai</span>
           </h1>
-          <p className="text-xs text-muted-foreground mt-1 font-medium">your brutal financial reality check</p>
+          <div className="mt-4 text-center w-full">
+            <p className="text-[9px] text-primary/70 font-black uppercase tracking-[0.4em] leading-relaxed relative">
+              <span className="absolute -left-2 top-1/2 w-8 h-[1px] bg-primary/30 -translate-y-1/2" />
+              system access
+              <span className="absolute -right-2 top-1/2 w-8 h-[1px] bg-primary/30 -translate-y-1/2" />
+            </p>
+          </div>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 space-y-1">
+        <nav className="flex-1 px-6 space-y-3 mt-4 relative z-10">
           {NAV_ITEMS.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
                 cn(
-                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm",
+                  "flex items-center gap-5 px-6 py-4 rounded-2xl transition-all font-black text-xs tracking-widest group relative overflow-hidden",
                   isActive 
-                    ? "bg-pink-500/10 text-pink-600 dark:text-pink-400" 
-                    : "text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5 hover:text-foreground"
+                    ? "text-black shadow-[0_10px_30px_rgba(225,255,0,0.2)]" 
+                    : "text-white/50 hover:text-white"
                 )
               }
             >
-              <item.icon className="w-5 h-5" />
-              {item.name}
+              {({ isActive }) => (
+                <>
+                  {/* Active Indicator & Background */}
+                  {isActive && (
+                    <motion.div 
+                      layoutId="activeTab"
+                      className="absolute inset-0 bg-primary z-0 rounded-2xl"
+                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    />
+                  )}
+                  {isActive && (
+                    <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.5),transparent)] -translate-x-[150%] animate-[shimmer_2s_infinite] z-0" />
+                  )}
+                  
+                  {/* Hover Background */}
+                  {!isActive && (
+                    <div className="absolute inset-0 bg-white/5 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-300 z-0" />
+                  )}
+
+                  <item.icon className={cn("w-5 h-5 relative z-10 transition-transform duration-500", isActive ? "text-black" : "group-hover:scale-110")} />
+                  <span className="uppercase relative z-10">{item.name}</span>
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
 
-        {/* Sign Out */}
-        <div className="p-3">
+        {/* Bottom CTA & Sign Out */}
+        <div className="p-6 relative z-10 flex flex-col gap-4">
+          <motion.button 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full py-4 px-4 bg-gradient-to-r from-accent to-accent/80 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-[inset_0_2px_0_rgba(255,255,255,0.2),_0_10px_20px_rgba(139,92,246,0.3)] relative overflow-hidden group/share"
+          >
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)] -translate-x-[150%] group-hover/share:translate-x-[150%] transition-transform duration-700" />
+            Share your shame 😈
+          </motion.button>
           <button 
             onClick={logout}
-            className="flex items-center gap-3 w-full px-4 py-3 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all font-semibold text-sm"
+            className="flex items-center justify-center gap-3 w-full px-4 py-3 text-white/40 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all font-bold text-xs uppercase tracking-widest border border-transparent hover:border-red-500/20"
           >
-            <LogOut className="w-5 h-5" />
-            Sign Out
+            <LogOut className="w-4 h-4" />
+            System Exit
           </button>
         </div>
       </aside>
 
-      {/* ─── Main Content ─── */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative py-3 pr-3 gap-3">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative py-4 lg:py-6 pr-4 lg:pr-6 z-10 gap-4 lg:gap-6">
         
         {/* Topbar */}
-        <header className="h-16 bg-card border border-border rounded-2xl flex items-center justify-between px-6 z-20 shrink-0 shadow-sm">
+        <header className="h-20 bg-black/20 backdrop-blur-2xl border border-white/5 rounded-3xl flex items-center justify-between px-8 z-20 shrink-0 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
           <div className="flex-1 flex items-center h-full">
             {location.pathname === '/dashboard' && (
               <SavingsTracker />
             )}
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Theme Toggle */}
-            <div className="flex items-center bg-background p-1 rounded-full border border-border">
-              <button onClick={() => setTheme('light')} className={cn("p-2 rounded-full transition-all", theme === 'light' ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}>
-                <Sun className="w-4 h-4" />
-              </button>
-              <button onClick={() => setTheme('system')} className={cn("p-2 rounded-full transition-all", theme === 'system' ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}>
-                <Laptop className="w-4 h-4" />
-              </button>
-              <button onClick={() => setTheme('dark')} className={cn("p-2 rounded-full transition-all", theme === 'dark' ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}>
-                <Moon className="w-4 h-4" />
-              </button>
-            </div>
-
+          <div className="flex items-center gap-6">
             {/* User Profile */}
-            <div className="flex items-center gap-3 pl-4 border-l border-border">
+            <div className="flex items-center gap-5 pl-6 border-l border-white/5">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-foreground">{user?.displayName || 'User'}</p>
-                <p className="text-xs text-muted-foreground">{user?.email || ''}</p>
+                <p className="text-sm font-black text-white uppercase tracking-widest">{user?.displayName || 'USER'}</p>
+                <p className="text-[9px] text-primary uppercase tracking-[0.2em] mt-1">{user?.email || 'broke_bestie@gmail.com'}</p>
               </div>
-              <img 
-                src={user?.photoURL || `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(user?.displayName || 'User')}&backgroundColor=ec4899`} 
-                alt="Profile" 
-                className="w-9 h-9 rounded-full border-2 border-border object-cover"
-              />
+              <motion.div 
+                whileHover={{ scale: 1.1, rotate: -5 }}
+                className="group relative"
+              >
+                <div className="absolute inset-0 bg-primary rounded-xl blur-[15px] opacity-0 group-hover:opacity-40 transition-opacity duration-300" />
+                <img 
+                  src={user?.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user?.displayName || 'User')}&backgroundColor=8B5CF6`} 
+                  alt="Profile" 
+                  className="w-12 h-12 rounded-xl border-2 border-white/10 group-hover:border-primary object-cover cursor-pointer transition-colors shadow-2xl relative z-10"
+                />
+              </motion.div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto rounded-2xl relative z-10 flex flex-col">
-          <div className="flex-1 p-6 md:p-10">
+        <div className="flex-1 overflow-auto rounded-3xl relative z-10 flex flex-col bg-black/30 backdrop-blur-xl border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="flex-1 relative">
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.25 }}
-                className="h-full"
+                initial={{ opacity: 0, filter: "blur(10px)" }}
+                animate={{ opacity: 1, filter: "blur(0px)" }}
+                exit={{ opacity: 0, filter: "blur(10px)" }}
+                transition={{ duration: 0.4 }}
+                className="h-full relative z-10"
               >
                 <Outlet />
               </motion.div>
             </AnimatePresence>
           </div>
-          <Footer />
         </div>
       </main>
     </div>
