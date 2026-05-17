@@ -50,7 +50,7 @@ export const generateRoast = async (productData, vibe, budget = 5000) => {
   5. Speak in lowercase sass everywhere.`;
 
   const model = genAI.getGenerativeModel({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-2.5-flash',
     systemInstruction: systemInstruction,
   });
 
@@ -63,13 +63,32 @@ export const generateRoast = async (productData, vibe, budget = 5000) => {
   `;
 
   const result = await model.generateContent(promptContext);
-  let cleanJson = result.response.text().trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+  const text = result.response.text();
+  
+  // Extract JSON from anywhere in the string, ignoring markdown blocks or conversational text
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  const cleanJson = jsonMatch ? jsonMatch[0] : text;
   
   try {
     const parsed = JSON.parse(cleanJson);
     return parsed;
   } catch (err) {
-    console.error("Failed to parse Gemini JSON:", cleanJson);
-    throw new Error("Invalid AI Response format");
+    console.error("[AI Error] Failed to parse Gemini JSON:", cleanJson);
+    
+    // Attempt extreme fallback if JSON fails
+    return {
+      product: {
+        title: productData.title || "Unknown Item",
+        price: productData.price || "₹ Unavailable",
+        category: "General",
+        verdict: "cooked."
+      },
+      score: { total: 80, eco: 0 },
+      savageVerdict: ["Your logic is flawed.", "Please don't buy this."],
+      girlMathVerdict: ["It's free if you don't look at your bank account."],
+      moneyComparison: ["This costs more than a decent meal."],
+      memeQuotes: ["bruh 💀"],
+      mascotMood: "judging"
+    };
   }
 };

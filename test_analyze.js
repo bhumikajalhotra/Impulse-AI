@@ -13,13 +13,7 @@ async function testBackend() {
     
     const data1 = await res1.json();
     console.log("Status:", res1.status);
-    console.log("Result:", data1.error || data1.verdict);
-    
-    if (data1.error === "SCRAPER_BLOCKED" || data1.verdict === "TRY AGAIN") {
-      console.log("✅ Fallback triggered successfully.");
-    } else {
-      console.log("⚠️ Fallback not triggered (maybe scraper worked).");
-    }
+    console.log("Result:", JSON.stringify(data1, null, 2));
 
     // 2. Test manual fallback logic
     console.log("\\n--- Test 2: Manual Fallback Mode ---");
@@ -35,13 +29,7 @@ async function testBackend() {
 
     const data2 = await res2.json();
     console.log("Status:", res2.status);
-    console.log("Product Name:", data2.productName);
-    console.log("Price:", data2.price);
-    console.log("Verdict:", data2.verdict);
-    
-    if (data2.productName && !data2.error) {
-       console.log("✅ Manual fallback processed successfully.");
-    }
+    console.log("Result:", JSON.stringify(data2, null, 2));
 
   } catch (err) {
     console.error("Test Error:", err.message);
