@@ -2,14 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const TERMINAL_LOGS = [
-  "[SYS] Initializing financial reality engine...",
-  "[NET] Bypassing retailer copium filters...",
-  "[AI] Analyzing emotional damage vectors...",
-  "[DB] Cross-referencing previous bad decisions...",
-  "[CALC] Computing iced coffee equivalents...",
-  "[SYS] Loading girl math algorithms...",
-  "[AI] Preparing ruthless verdict...",
-  "[WARN] Wallet life support critical..."
+  "checking financial damage...",
+  "bypassing corporate firewalls...",
+  "decrypting your bad decisions...",
+  "consulting girl math department...",
+  "measuring regret potential...",
+  "bypassing retailer copium filters...",
+  "analyzing emotional damage vectors...",
+  "cross-referencing previous bad decisions...",
+  "computing iced coffee equivalents...",
+  "preparing ruthless verdict..."
 ];
 
 export const LoadingScreen: React.FC = () => {
