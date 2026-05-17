@@ -1,15 +1,11 @@
-import React, { useState } from 'react';
-import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from 'framer-motion';
+import React from 'react';
+import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
-import { Share2, ArrowLeft, Heart, Skull, Zap, AlertTriangle, Terminal } from 'lucide-react';
+import { Share2, Heart, Skull, Check, X, Quote } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AnalyzeResult {
-  error?: string;
-  message?: string;
-  suggestedProductName?: string;
-  isManualMode?: boolean;
-  originalUrl?: string;
+  isFallback?: boolean;
   product?: {
     title: string;
     price: string;
@@ -17,477 +13,426 @@ interface AnalyzeResult {
     verdict: string;
     image?: string;
   };
-  score?: {
-    total: number;
-    eco: number;
-  };
+  score?: { total: number; eco: number; };
   savageVerdict?: string[];
   girlMathVerdict?: string[];
   moneyComparison?: string[];
   memeQuotes?: string[];
-  mascotMood?: string;
 }
 
-// ─── Tilt Card Wrapper (3D - Enhanced) ───
-const TiltCard: React.FC<{ children: React.ReactNode; className?: string; variants?: Variants; onClick?: () => void }> = ({ children, className, variants, onClick }) => {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  const rotateX = useSpring(useTransform(y, [-100, 100], [7, -7]), { stiffness: 400, damping: 40 });
-  const rotateY = useSpring(useTransform(x, [-100, 100], [-7, 7]), { stiffness: 400, damping: 40 });
-
-  function handleMouseMove(event: React.MouseEvent<HTMLDivElement>) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    x.set(event.clientX - centerX);
-    y.set(event.clientY - centerY);
-  }
-
-  function handleMouseLeave() {
-    x.set(0);
-    y.set(0);
-  }
-
-  return (
-    <motion.div
-      variants={variants}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onClick={onClick}
-      style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
-      className={`relative group ${className}`}
-    >
-      <div className="relative z-10 h-full w-full">
-        {children}
-      </div>
-    </motion.div>
-  );
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.1 } }
 };
 
-// Smart fallback image component
-const SmartImage: React.FC<{ src?: string | null; alt?: string }> = ({ src, alt }) => {
-  const [imgError, setImgError] = useState(false);
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring' as const, damping: 25, stiffness: 120 } }
+};
 
-  if (!src || imgError) {
-    return (
-      <motion.div 
-        whileHover={{ scale: 1.02 }}
-        className="w-full aspect-square rounded-[2rem] bg-black/40 border border-white/5 flex flex-col items-center justify-center p-6 shadow-inner backdrop-blur-md"
-      >
-        <Zap className="w-16 h-16 text-white/10 animate-pulse" />
-      </motion.div>
-    );
-  }
+// Helper for bestie advice depending on the score
+const getBestieAdvice = (score: number) => {
+  if (score >= 90) return 'run, you are cooked 💀';
+  if (score >= 70) return 'think twice bestie 😳';
+  if (score >= 50) return 'tread carefully 🫣';
+  return 'safe zone 💅';
+};
+
+export const BentoGrid: React.FC<{ result: AnalyzeResult; onReset?: () => void }> = ({ result }) => {
+  const scoreTotal = result.score?.total || 73;
+  const isBad = scoreTotal > 60;
+  
+  // SVG Circular Gauge Calculations
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (scoreTotal / 100) * circumference;
+
+  const handleShare = async () => {
+    const productTitle = result.product?.title || 'this item';
+    const message = `impulse.ai just annihilated my ego. i'm officially cooked for wanting ${productTitle}. 💀💸`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'impulse.ai // reality check',
+          text: message,
+          url: window.location.origin
+        });
+      } catch {
+        // Silent catch
+      }
+    } else {
+      navigator.clipboard.writeText(message);
+      toast.success('shame message copied to clipboard ⚡');
+    }
+  };
+
+  // Safe slice for bullet lists
+  const girlMathList = result.girlMathVerdict && result.girlMathVerdict.length > 0 
+    ? result.girlMathVerdict 
+    : [
+        "Noise cancellation = peace of mind = priceless",
+        "Perfect for productivity = better career = more money",
+        "Premium quality = lasts longer = saves money",
+        "You deserve nice things, queen!"
+      ];
+
+  const savageList = result.savageVerdict && result.savageVerdict.length > 0
+    ? result.savageVerdict
+    : [
+        "You have working headphones already",
+        "That's 3 days of your mess expenses",
+        "EMIs are not your friend",
+        "Impulse buying won't heal you"
+      ];
+
+  const moneyComparisonList = result.moneyComparison && result.moneyComparison.length > 0
+    ? result.moneyComparison
+    : [
+        `This is worth ${Math.round((parseFloat((result.product?.price || '').replace(/[^0-9]/g, '')) || 999) / 350)} Starbucks Iced Lattes ☕`,
+        "You could have bought 4 days of groceries 🛒"
+      ];
+
+  const memeQuotesList = result.memeQuotes && result.memeQuotes.length > 0
+    ? result.memeQuotes
+    : [
+        "Your bank account just flinched 📉",
+        "Therapy is cheaper than this 🤡"
+      ];
 
   return (
     <motion.div 
-      whileHover={{ scale: 1.02, rotate: [0, -1, 1, 0] }}
-      transition={{ duration: 0.5 }}
-      className="relative w-full aspect-square rounded-[2rem] overflow-hidden border border-white/5 bg-white/5 p-4 md:p-8 group-hover:border-primary/30 group-hover:bg-primary/5 transition-all shadow-2xl backdrop-blur-md"
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="w-full flex flex-col gap-6 font-sans relative z-10"
     >
-      <img
-        src={src}
-        alt={alt || 'Product'}
-        onError={() => setImgError(true)}
-        className="w-full h-full object-contain filter drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)] transition-transform duration-700 group-hover:scale-105"
-        crossOrigin="anonymous"
-      />
-    </motion.div>
-  );
-};
-
-// ─── Cinematic Access Denied Screen (Scraper Blocked) ───
-const ScraperBlockedCard: React.FC<{
-  result: AnalyzeResult;
-  onSubmitManual?: (name: string, price: string) => void;
-  onReset: () => void;
-}> = ({ result, onSubmitManual, onReset }) => {
-  const [manualName, setManualName] = useState(result.suggestedProductName || '');
-  const [manualPrice, setManualPrice] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualName.trim() || !manualPrice.trim()) return;
-    if (onSubmitManual) {
-      setIsSubmitting(true);
-      onSubmitManual(manualName.trim(), manualPrice.trim());
-    }
-  };
-
-  return (
-    <div className="w-full min-h-[calc(100vh-10rem)] flex flex-col xl:flex-row items-center justify-center gap-10 xl:gap-20 relative p-6">
-      
-      {/* Background Warning Glow */}
+      {/* ROW 1: Product card and Circular Verdict Score Gauge */}
       <motion.div 
-        animate={{ opacity: [0.1, 0.3, 0.1] }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="absolute inset-0 bg-red-600/10 pointer-events-none mix-blend-color-burn" 
-      />
-      
-      {/* LEFT: Dramatic Mascot */}
-      <motion.div 
-        initial={{ opacity: 0, x: -100, rotate: -10 }}
-        animate={{ opacity: 1, x: 0, rotate: 0 }}
-        transition={{ duration: 1, type: "spring" }}
-        className="hidden xl:flex w-1/3 flex-col items-center justify-center relative"
+        variants={itemVariants}
+        className="bg-[#0B0D11]/90 border border-white/5 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_15px_40px_rgba(0,0,0,0.5)] relative overflow-hidden group"
       >
-        <div className="absolute inset-0 bg-red-500/20 blur-[100px] rounded-full" />
-        <img src="/mascot.png" alt="Disappointed Mascot" className="w-[500px] object-contain relative z-10 drop-shadow-[0_0_30px_rgba(239,68,68,0.5)] grayscale contrast-150" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-50 pointer-events-none" />
         
-        {/* Sarcastic Bubble */}
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5 }}
-          className="absolute top-20 -right-20 bg-black border border-red-500/50 p-6 rounded-[2rem] rounded-bl-none shadow-[0_10px_30px_rgba(239,68,68,0.3)] z-20"
-        >
-          <p className="text-sm font-black text-red-500 uppercase tracking-widest mb-2">System Message</p>
-          <p className="text-lg font-bold text-white italic">"Retailer said no 💀<br/>Guess they’re hiding your bad decisions."</p>
-        </motion.div>
-      </motion.div>
-
-      {/* CENTER & RIGHT: Elegant Fallback & Form */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.8 }}
-        className="w-full max-w-2xl flex flex-col relative z-10"
-      >
-        <div className="text-center xl:text-left mb-10">
-          <Terminal className="w-8 h-8 text-white/50 mx-auto xl:mx-0 mb-6" />
-          <h2 className="text-4xl sm:text-5xl font-display font-black text-white mb-4 leading-tight">
-            We couldn't fully fetch the product.
-          </h2>
-          <p className="text-lg text-white/50 uppercase tracking-[0.2em]">Drop details manually and we’ll still judge you.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6 bg-black/60 backdrop-blur-2xl border-l-4 border-red-500 p-8 sm:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.8)] relative overflow-hidden group">
-          <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(239,68,68,0.05)_50%,transparent_75%)] bg-[length:10px_10px]" />
-          
-          <div className="relative z-10 space-y-6">
-            <div>
-              <label className="block text-[10px] font-black text-white/50 uppercase tracking-[0.2em] mb-2">Item Name (Be Honest)</label>
-              <motion.input
-                whileFocus={{ scale: 1.01 }}
-                type="text"
-                required
-                placeholder="e.g. Useless RGB Keyboard"
-                value={manualName}
-                onChange={(e) => setManualName(e.target.value)}
-                className="w-full bg-black/50 border-b-2 border-white/10 px-4 py-4 text-white focus:outline-none focus:border-red-500 transition-all font-bold placeholder:font-normal placeholder:text-white/20 text-xl"
-              />
+        {/* Left Side: Product Info */}
+        <div className="flex flex-col sm:flex-row items-center gap-6 w-full md:w-auto">
+          {/* White backdropped clean product card thumbnail */}
+          <div className="w-28 h-28 bg-white rounded-2xl p-2 flex items-center justify-center shrink-0 border border-white/10 shadow-[0_8px_24px_rgba(255,255,255,0.05)] transition-transform group-hover:scale-105 duration-500">
+            <img 
+              src={result.product?.image || '/mascot.png'} 
+              alt={result.product?.title || 'Product Image'} 
+              className="max-w-full max-h-full object-contain"
+              onError={(e) => {
+                // Fail-safe default
+                e.currentTarget.src = 'https://api.dicebear.com/7.x/bottts/svg?seed=Sony';
+              }}
+            />
+          </div>
+          <div className="text-center sm:text-left flex-1 min-w-0">
+            <h2 className="text-lg md:text-xl font-black text-white leading-tight tracking-tight mb-2 truncate max-w-md md:max-w-lg">
+              {result.product?.title || 'Product Title'}
+            </h2>
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 mb-2.5">
+              <span className="bg-white/5 border border-white/10 text-white/50 text-[9px] font-black uppercase px-2 py-0.5 rounded flex items-center gap-1.5 shadow-sm">
+                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 inline-block" />
+                {result.product?.category || 'lifestyle'}
+              </span>
+              <span className="text-[10px] text-white/30 font-bold uppercase tracking-wider">
+                {result.product?.category ? 'verified partner' : 'stealth guess'}
+              </span>
             </div>
-            <div>
-              <label className="block text-[10px] font-black text-white/50 uppercase tracking-[0.2em] mb-2">Price (Damage)</label>
-              <motion.input
-                whileFocus={{ scale: 1.01 }}
-                type="text"
-                required
-                placeholder="e.g. 5000"
-                value={manualPrice}
-                onChange={(e) => setManualPrice(e.target.value)}
-                className="w-full bg-black/50 border-b-2 border-white/10 px-4 py-4 text-white focus:outline-none focus:border-red-500 transition-all font-bold placeholder:font-normal placeholder:text-white/20 text-xl"
-              />
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4 pt-8">
-              <motion.button 
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button" 
-                onClick={onReset} 
-                className="px-8 py-5 bg-white/5 text-white font-black uppercase text-xs tracking-[0.2em] hover:bg-white/10 transition-colors border border-white/10"
-              >
-                Retreat
-              </motion.button>
-              <motion.button 
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit" 
-                disabled={isSubmitting} 
-                className="flex-1 bg-gradient-to-r from-red-600 to-red-800 text-white font-black py-5 uppercase tracking-[0.2em] text-sm hover:from-red-500 hover:to-red-700 transition-all shadow-[inset_0_2px_0_rgba(255,255,255,0.2),_0_10px_20px_rgba(239,68,68,0.4)] disabled:opacity-50 relative overflow-hidden group/hack"
-              >
-                <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)] -translate-x-[150%] group-hover/hack:translate-x-[150%] transition-transform duration-700" />
-                {isSubmitting ? 'OVERRIDING...' : 'INITIATE ROAST'}
-              </motion.button>
+            <div className="flex items-center justify-center sm:justify-start gap-3">
+              <span className="text-xl font-black text-white">{result.product?.price || '₹ Estimated Price'}</span>
+              <span className="text-[9px] font-black text-[#E2FF00] bg-[#E2FF00]/10 border border-[#E2FF00]/20 px-1.5 py-0.5 rounded uppercase flex items-center gap-0.5 shadow-[0_0_8px_rgba(226,255,0,0.1)]">
+                ✓ prime
+              </span>
             </div>
           </div>
-        </form>
-      </motion.div>
-    </div>
-  );
-};
-
-// ─── Main Dashboard Result (BentoGrid) ───
-export const BentoGrid: React.FC<{
-  result: AnalyzeResult;
-  onReset: () => void;
-  onSubmitManual?: (name: string, price: string) => void;
-}> = ({ result, onReset, onSubmitManual }) => {
-  const [excuse, setExcuse] = useState('');
-  const [rebuttal, setRebuttal] = useState('');
-  const [isArguing, setIsArguing] = useState(false);
-
-  if (result.error === 'SCRAPER_BLOCKED' || result.product?.verdict === 'TRY AGAIN') {
-    return <ScraperBlockedCard result={result} onReset={onReset} onSubmitManual={onSubmitManual} />;
-  }
-
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.15 } }
-  };
-
-  const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 50, scale: 0.95 },
-    show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', damping: 25, stiffness: 100 } }
-  };
-
-  const handleShare = async () => {
-    const shareMessage = `Impulse.ai Reality Check: ${result.product?.title || 'Unknown Item'} - ${result.product?.verdict || 'cooked'}. 💀`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Impulse.ai Roast', text: shareMessage, url: window.location.origin });
-      } catch {
-        // ignore
-      }
-    } else {
-      await navigator.clipboard.writeText(shareMessage);
-      toast.success('ROAST COPIED TO CLIPBOARD ⚡', { style: { background: '#E1FF00', color: '#000' }});
-    }
-  };
-
-  const handleArgue = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!excuse.trim()) return;
-    setIsArguing(true);
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL;
-      const response = await fetch(`${apiUrl}/api/argue`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ excuse, productContext: result }),
-      });
-      const data = await response.json();
-      setRebuttal(data.rebuttal);
-      setExcuse('');
-    } catch {
-      toast.error('AI IS TOO STUNNED TO SPEAK 💀', { style: { background: '#000', color: '#ff3366', border: '1px solid #ff3366' } });
-    } finally {
-      setIsArguing(false);
-    }
-  };
-
-  const safeScore = result.score?.total || 73;
-  const title = result.product?.title || result.suggestedProductName || 'Unknown Item';
-  const price = result.product?.price || '₹ Unavailable';
-  const image = result.product?.image || null;
-  const girlMath = result.girlMathVerdict?.[0] || "It's not an expense, it's a lifestyle upgrade ✨";
-  const realityCheck = result.savageVerdict?.[0] || "Let's be real bestie. You don't need this 💀";
-  const quotes = result.memeQuotes || [];
-  const comparisons = result.moneyComparison || [];
-
-  const circumference = 2 * Math.PI * 60;
-  const strokeDashoffset = circumference - (safeScore / 100) * (circumference / 2);
-
-  return (
-    <div className="relative w-full max-w-[1500px] mx-auto flex flex-col pb-12 px-6 sm:px-10">
-      
-      {/* Top Nav (Asymmetrical) */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row justify-between items-end mb-10 gap-6 relative z-30"
-      >
-        <motion.button
-          whileHover={{ x: -5 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onReset}
-          className="flex items-center justify-center gap-3 px-4 py-3 bg-transparent rounded-full text-white/50 transition-colors font-black text-xs uppercase tracking-widest border-b border-transparent hover:border-white/20"
-        >
-          <ArrowLeft className="w-4 h-4" /> Reset Reality
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.02, boxShadow: "0 0 20px rgba(225,255,0,0.3)" }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleShare}
-          className="w-full sm:w-auto flex items-center justify-center gap-3 px-8 py-4 bg-primary text-black rounded-xl font-black text-xs uppercase tracking-widest shadow-[0_5px_15px_rgba(225,255,0,0.1)]"
-        >
-          <Share2 className="w-4 h-4" /> Broadcast Shame
-        </motion.button>
-      </motion.div>
-
-      <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-        className="flex flex-col lg:flex-row gap-8 relative"
-      >
-        {/* ─── LEFT: PRODUCT SHOWCASE ─── */}
-        <div className="w-full lg:w-[350px] xl:w-[400px] flex-shrink-0 z-20 lg:sticky lg:top-8 self-start">
-          <TiltCard variants={itemVariants} className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 flex flex-col items-center shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-accent to-primary opacity-50" />
-            <div className="w-full mb-6 relative">
-              <SmartImage src={image} alt={title} />
-            </div>
-            <div className="text-center w-full">
-              <span className="text-[9px] text-primary/70 font-black uppercase tracking-[0.3em] mb-3 block">Target Acquired</span>
-              <h2 className="text-xl lg:text-2xl font-display font-black text-white leading-tight mb-4 line-clamp-3">{title}</h2>
-              <div className="inline-block px-6 py-3 bg-black/80 rounded-xl border border-white/5 shadow-inner">
-                <span className="text-3xl font-display font-black text-primary">{price}</span>
-              </div>
-            </div>
-
-            {/* Score Meter */}
-            <div className="mt-8 w-full bg-white/[0.02] rounded-[1.5rem] border border-white/5 p-6 flex flex-col items-center relative overflow-hidden">
-              <span className="text-[9px] text-white/50 font-black uppercase tracking-[0.2em] mb-4 relative z-10">Impulse Level</span>
-              <div className="relative w-48 h-24 overflow-hidden flex items-end justify-center z-10">
-                <svg className="absolute top-0 w-48 h-48 -rotate-180">
-                  <circle cx="96" cy="96" r="60" stroke="rgba(255,255,255,0.05)" strokeWidth="10" fill="transparent" />
-                  <motion.circle cx="96" cy="96" r="60" stroke="#E1FF00" strokeWidth="10" fill="transparent"
-                    strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    initial={{ strokeDashoffset: circumference }}
-                    animate={{ strokeDashoffset }}
-                    transition={{ duration: 2, ease: "easeOut", delay: 0.2 }}
-                  />
-                </svg>
-                <div className="absolute bottom-0 flex flex-col items-center">
-                  <span className="text-5xl font-display font-black text-white">{safeScore}<span className="text-lg text-white/30">/100</span></span>
-                </div>
-              </div>
-              <motion.p 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-4 text-[10px] font-black text-primary uppercase tracking-widest relative z-10 text-center bg-black/50 px-3 py-1.5 rounded-full"
-              >
-                {safeScore > 80 ? 'CRITICAL DANGER 🚨' : safeScore > 50 ? 'THINK TWICE 🤨' : 'SAFE TO BUY ✨'}
-              </motion.p>
-            </div>
-          </TiltCard>
         </div>
 
-        {/* ─── RIGHT: AI ANALYSIS CARDS ─── */}
-        <div className="flex-1 flex flex-col gap-6 z-10">
-          
-          {/* Card 1: Savage Reality Check */}
-          <TiltCard variants={itemVariants} className="w-full">
-            <div className="relative overflow-hidden bg-[#0a0a0a] border border-red-500/20 rounded-[2rem] p-8 lg:p-10 shadow-xl">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 rounded-full blur-[80px] pointer-events-none" />
-              
-              <div className="flex flex-col lg:flex-row-reverse gap-8 items-start relative z-10">
-                <div className="flex-1 space-y-6">
-                  <div className="flex items-center gap-3 text-red-500">
-                    <Skull className="w-5 h-5" />
-                    <h3 className="font-black text-[10px] tracking-widest uppercase">Savage Reality</h3>
-                  </div>
-                  
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-display font-black text-white leading-tight">
-                    "{realityCheck}"
-                  </p>
-                  
-                  {comparisons.length > 0 && (
-                    <div className="pt-4 space-y-3">
-                      {comparisons.map((c, i) => (
-                        <div key={i} className="flex items-start gap-3 p-3 bg-red-500/5 rounded-xl border border-red-500/10">
-                          <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                          <span className="text-white/80 font-bold text-sm">{c}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <motion.div 
-                  className="w-32 h-32 lg:w-48 lg:h-48 shrink-0 relative order-first lg:order-last"
-                >
-                  <img src="/mascot.png" alt="Savage Mascot" className="w-full h-full object-contain relative z-10 grayscale brightness-125 drop-shadow-[0_10px_20px_rgba(239,68,68,0.3)] transform -scale-x-100" />
-                </motion.div>
-              </div>
+        {/* Right Side: Verdict Score Ring Gauge */}
+        <div className="flex items-center gap-6 shrink-0 bg-black/30 border border-white/5 px-6 py-4 rounded-2xl shadow-inner min-w-[200px] justify-center sm:justify-start">
+          <div className="relative w-20 h-20">
+            {/* Background Circle */}
+            <svg className="w-full h-full transform -rotate-90">
+              <circle
+                cx="40"
+                cy="40"
+                r={radius}
+                className="stroke-white/[0.03]"
+                strokeWidth="7"
+                fill="transparent"
+              />
+              {/* Foreground Segment */}
+              <motion.circle
+                cx="40"
+                cy="40"
+                r={radius}
+                className={isBad ? 'stroke-red-500' : 'stroke-[#E2FF00]'}
+                strokeWidth="7"
+                fill="transparent"
+                strokeDasharray={circumference}
+                initial={{ strokeDashoffset: circumference }}
+                animate={{ strokeDashoffset: strokeDashoffset }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-lg font-black text-white leading-none">{scoreTotal}</span>
+              <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest mt-0.5">/100</span>
             </div>
-          </TiltCard>
-
-          {/* Card 2: Girl Math Enabler */}
-          <TiltCard variants={itemVariants} className="w-full">
-            <div className="relative overflow-hidden bg-[#0a0a0a] border border-secondary/20 rounded-[2rem] p-8 lg:p-10 shadow-xl">
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/5 rounded-full blur-[80px] pointer-events-none" />
-              
-              <div className="flex flex-col lg:flex-row gap-8 items-start relative z-10">
-                <div className="flex-1 space-y-6">
-                  <div className="flex items-center gap-3 text-secondary">
-                    <Heart className="w-5 h-5 fill-secondary" />
-                    <h3 className="font-black text-[10px] tracking-widest uppercase">Girl Math Logic</h3>
-                  </div>
-                  
-                  <p className="text-2xl sm:text-3xl lg:text-4xl font-display font-black text-white leading-tight">
-                    "{girlMath}"
-                  </p>
-                  
-                  {quotes.length > 0 && (
-                    <div className="pt-4 space-y-3">
-                      {quotes.map((q, i) => (
-                        <div key={i} className="flex items-start gap-3 p-3 bg-secondary/5 rounded-xl border border-secondary/10">
-                          <Zap className="w-4 h-4 text-secondary shrink-0 mt-0.5" />
-                          <span className="text-white/80 font-bold text-sm">{q}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                <motion.div 
-                  className="w-32 h-32 lg:w-48 lg:h-48 shrink-0 relative order-first lg:order-last"
-                >
-                  <img src="/mascot.png" alt="Happy Mascot" className="w-full h-full object-contain relative z-10 drop-shadow-[0_10px_20px_rgba(204,255,0,0.2)]" />
-                </motion.div>
-              </div>
-            </div>
-          </TiltCard>
-
-          {/* Argue Section (API Re-connected, Cyberpunk styling) */}
-          <TiltCard variants={itemVariants} className="w-full">
-            <div className="relative overflow-hidden bg-black/60 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 lg:p-10 shadow-xl">
-              <div className="flex items-center gap-4 mb-8 relative z-10">
-                <Terminal className="w-6 h-6 text-primary" />
-                <h3 className="text-2xl font-display font-black text-white uppercase tracking-tight">Defend Your Aura</h3>
-              </div>
-              
-              <AnimatePresence>
-                {rebuttal && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0, scale: 0.95 }} 
-                    animate={{ opacity: 1, height: "auto", scale: 1 }} 
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mb-8 p-6 bg-primary/5 border border-primary/20 rounded-xl relative z-10"
-                  >
-                    <span className="text-[9px] font-black text-primary/70 uppercase tracking-widest mb-2 block">System Rebuttal</span>
-                    <p className="text-lg text-white font-medium italic leading-relaxed">"{rebuttal}"</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <form onSubmit={handleArgue} className="flex flex-col sm:flex-row gap-4 relative z-10">
-                <input 
-                  type="text" 
-                  placeholder="Enter defense argument..." 
-                  value={excuse} 
-                  onChange={(e) => setExcuse(e.target.value)} 
-                  className="flex-1 bg-black/50 border border-white/10 rounded-xl px-5 py-4 text-white focus:outline-none focus:border-primary transition-all font-bold placeholder:font-normal placeholder:text-white/30 text-sm" 
-                />
-                <motion.button 
-                  whileHover={{ scale: 1.02 }} 
-                  whileTap={{ scale: 0.98 }} 
-                  disabled={isArguing || !excuse.trim()}
-                  className="w-full sm:w-auto bg-primary text-black px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs disabled:opacity-50 transition-transform"
-                >
-                  {isArguing ? 'PROCESSING...' : 'EXECUTE'}
-                </motion.button>
-              </form>
-            </div>
-          </TiltCard>
-
+          </div>
+          <div className="text-left">
+            <span className="text-[8px] font-black text-white/20 uppercase tracking-[0.2em] block leading-none mb-1">verdict score</span>
+            <span className="text-xs font-black text-white capitalize block leading-tight">{getBestieAdvice(scoreTotal)}</span>
+            <button 
+              onClick={handleShare}
+              className="mt-2 text-[8px] font-black text-[#E2FF00] uppercase tracking-widest hover:underline flex items-center gap-1 leading-none transition-all"
+            >
+              <Share2 className="w-2.5 h-2.5 text-[#E2FF00]" /> broadcast shame
+            </button>
+          </div>
         </div>
       </motion.div>
-    </div>
+
+      {/* ROW 2: Dual Verdict columns (Girl Math vs Savage) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Girl Math (Enabler) */}
+        <motion.div 
+          variants={itemVariants}
+          className="bg-[#0B0D11]/90 border border-green-500/10 rounded-3xl p-6 md:p-8 flex flex-col gap-6 relative overflow-hidden group shadow-[0_15px_30px_rgba(0,0,0,0.5)]"
+        >
+          {/* Background Illustration chibi sticker */}
+          <div className="absolute right-2 bottom-0 w-28 h-28 pointer-events-none group-hover:scale-110 transition-transform duration-500 z-0">
+            <img src="/mascot.png" alt="Anime Background" className="w-full h-full object-contain filter contrast-115 brightness-105 drop-shadow-[-4px_-4px_12px_rgba(0,0,0,0.5)] scale-x-[-1]" />
+          </div>
+
+          <div className="flex items-center justify-between border-b border-white/5 pb-4 relative z-10">
+            <div className="flex items-center gap-2 text-green-500">
+              <Heart className="w-4 h-4 fill-green-500/20" />
+              <span className="font-black text-[9px] uppercase tracking-widest leading-none">GIRL MATH JUSTIFICATION</span>
+            </div>
+            <span className="bg-green-500/10 border border-green-500/20 text-green-500 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider leading-none">
+              ENABLER MODE
+            </span>
+          </div>
+
+          {/* Bullet Justifications */}
+          <ul className="flex flex-col gap-3.5 my-2 relative z-10 flex-1">
+            {girlMathList.slice(0, 4).map((item, idx) => (
+              <li key={idx} className="flex items-start gap-3 text-xs text-white/80 font-medium leading-snug">
+                <span className="w-4.5 h-4.5 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <Check className="w-2.5 h-2.5 text-green-400" />
+                </span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+
+          {/* Bottom Progress details */}
+          <div className="pt-4 border-t border-white/5 relative z-10 mt-auto">
+            <div className="flex justify-between items-center text-[9px] font-black uppercase text-white/30 tracking-widest mb-2.5">
+              <span>Justification Strength</span>
+              <span className="text-green-400">85%</span>
+            </div>
+            <div className="h-1.5 w-full bg-white/[0.03] rounded-full overflow-hidden border border-white/5">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: '85%' }}
+                transition={{ duration: 1.2, ease: 'easeOut' }}
+                className="h-full bg-green-400 rounded-full shadow-[0_0_8px_rgba(74,222,128,0.5)]"
+              />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Savage Reality Check */}
+        <motion.div 
+          variants={itemVariants}
+          className="bg-[#0B0D11]/90 border border-purple-500/10 rounded-3xl p-6 md:p-8 flex flex-col gap-6 relative overflow-hidden group shadow-[0_15px_30px_rgba(0,0,0,0.5)]"
+        >
+          {/* Background Illustration chibi sticker */}
+          <div className="absolute right-2 bottom-0 w-28 h-28 pointer-events-none group-hover:scale-110 transition-transform duration-500 z-0">
+            <img src="/mascot.png" alt="Anime Background" className="w-full h-full object-contain filter contrast-125 saturate-110 drop-shadow-[-4px_-4px_12px_rgba(0,0,0,0.5)]" />
+          </div>
+
+          <div className="flex items-center justify-between border-b border-white/5 pb-4 relative z-10">
+            <div className="flex items-center gap-2 text-purple-500">
+              <Skull className="w-4 h-4" />
+              <span className="font-black text-[9px] uppercase tracking-widest leading-none">SAVAGE REALITY CHECK</span>
+            </div>
+            <span className="bg-purple-500/10 border border-purple-500/20 text-purple-500 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider leading-none">
+              SAVAGE MODE
+            </span>
+          </div>
+
+          {/* Bullet Justifications */}
+          <ul className="flex flex-col gap-3.5 my-2 relative z-10 flex-1">
+            {savageList.slice(0, 4).map((item, idx) => (
+              <li key={idx} className="flex items-start gap-3 text-xs text-white/80 font-medium leading-snug">
+                <span className="w-4.5 h-4.5 rounded-full bg-purple-500/15 border border-purple-500/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <X className="w-2.5 h-2.5 text-purple-400" />
+                </span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+
+          {/* Bottom Progress details */}
+          <div className="pt-4 border-t border-white/5 relative z-10 mt-auto">
+            <div className="flex justify-between items-center text-[9px] font-black uppercase text-white/30 tracking-widest mb-2.5">
+              <span>Financial Damage Level</span>
+              <span className="text-purple-400">78%</span>
+            </div>
+            <div className="h-1.5 w-full bg-white/[0.03] rounded-full overflow-hidden border border-white/5">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: '78%' }}
+                transition={{ duration: 1.2, ease: 'easeOut' }}
+                className="h-full bg-purple-400 rounded-full shadow-[0_0_8px_rgba(192,132,252,0.5)]"
+              />
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ROW 2.5: Bottom Insights Matrix (3 Columns) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Delusion & Copium Index */}
+        <motion.div 
+          variants={itemVariants}
+          className="bg-[#0B0D11]/90 border border-[#E2FF00]/10 rounded-3xl p-6 flex flex-col gap-4 relative overflow-hidden group shadow-[0_15px_30px_rgba(0,0,0,0.5)]"
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-[#E2FF00]/5 to-transparent pointer-events-none" />
+          <div className="flex items-center justify-between border-b border-white/5 pb-3 relative z-10">
+            <div className="flex items-center gap-2 text-[#E2FF00]">
+              <span className="text-sm">🔮</span>
+              <span className="font-black text-[9px] uppercase tracking-widest leading-none">DELUSION INDEX</span>
+            </div>
+            <span className="bg-[#E2FF00]/10 border border-[#E2FF00]/25 text-[#E2FF00] text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider leading-none animate-pulse">
+              {(scoreTotal * 1.25) > 85 ? 'CERTIFIED DELULU 🤡' : 'COPE OK'}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2 relative z-10 flex-1 justify-center">
+            <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] block mb-0.5">Delusion Rating</span>
+            <span className="text-4xl font-display font-black text-white tracking-tight">
+              {Math.min(100, Math.round(scoreTotal * 0.95))}
+              <span className="text-lg text-[#E2FF00] font-sans font-black ml-1">%</span>
+            </span>
+            <span className="text-[9px] font-bold text-white/40 leading-relaxed mt-1">
+              {(scoreTotal * 1.25) > 85 ? 'delusion level: premium subscription active.' : 'acceptable cope limit.'}
+            </span>
+          </div>
+        </motion.div>
+
+        {/* Starbucks Coffee & Resource Value */}
+        <motion.div 
+          variants={itemVariants}
+          className="bg-[#0B0D11]/90 border border-purple-500/10 rounded-3xl p-6 flex flex-col gap-4 relative overflow-hidden group shadow-[0_15px_30px_rgba(0,0,0,0.5)]"
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-purple-500/5 to-transparent pointer-events-none" />
+          <div className="flex items-center justify-between border-b border-white/5 pb-3 relative z-10">
+            <div className="flex items-center gap-2 text-purple-400">
+              <span className="text-sm">☕</span>
+              <span className="font-black text-[9px] uppercase tracking-widest leading-none">RESOURCE VALUE</span>
+            </div>
+            <span className="bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider leading-none">
+              VALUE EQUAL
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-3 relative z-10 flex-1 justify-center">
+            <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] block mb-0.5">Iced Coffee Equivalent</span>
+            <div className="flex flex-col gap-2">
+              {moneyComparisonList.slice(0, 1).map((item, idx) => (
+                <div key={idx} className="text-xs font-semibold text-white/80 flex items-start gap-1.5 leading-snug">
+                  <span className="text-sm shrink-0">☕</span>
+                  <span>{item}</span>
+                </div>
+              ))}
+              <div className="text-[9px] font-bold text-white/40 leading-relaxed">
+                you could have bought 7 days of groceries instead.
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Aura Points Deduction */}
+        <motion.div 
+          variants={itemVariants}
+          className="bg-[#0B0D11]/90 border border-red-500/10 rounded-3xl p-6 flex flex-col gap-4 relative overflow-hidden group shadow-[0_15px_30px_rgba(0,0,0,0.5)]"
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-red-500/5 to-transparent pointer-events-none" />
+          <div className="flex items-center justify-between border-b border-white/5 pb-3 relative z-10">
+            <div className="flex items-center gap-2 text-red-400">
+              <span className="text-sm">📉</span>
+              <span className="font-black text-[9px] uppercase tracking-widest leading-none">AURA DEDUCTION</span>
+            </div>
+            <span className="bg-red-500/10 border border-red-500/20 text-red-400 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider leading-none">
+              SHAMED
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-2 relative z-10 flex-1 justify-center">
+            <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] block mb-0.5">Wallet Shamed Counter</span>
+            <span className="text-2xl font-display font-black text-red-500 tracking-tight uppercase">
+              -{(scoreTotal * 150).toLocaleString()} POINTS
+            </span>
+            <span className="text-[9px] font-bold text-white/40 leading-relaxed mt-1">
+              {memeQuotesList[0]?.toLowerCase() || 'your bank account just flinched.'}
+            </span>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Marquee Scrolling Ticker */}
+      <motion.div 
+        variants={itemVariants}
+        className="w-full bg-[#E2FF00] border-y border-black py-3.5 overflow-hidden whitespace-nowrap select-none relative z-10 rounded-2xl shadow-[0_8px_24px_rgba(226,255,0,0.12)]"
+      >
+        <style>{`
+          @keyframes marquee {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-50%); }
+          }
+          .animate-marquee {
+            display: inline-block;
+            animation: marquee 25s linear infinite;
+          }
+        `}</style>
+        <div className="animate-marquee uppercase font-display font-black text-[10px] tracking-[0.25em] text-black">
+          YOUR BANK ACCOUNT JUST FLINCHED... THE VIBES ARE... CHEAP. ⚡ YOUR BANK ACCOUNT JUST FLINCHED... THE VIBES ARE... CHEAP. ⚡ YOUR BANK ACCOUNT JUST FLINCHED... THE VIBES ARE... CHEAP. ⚡ YOUR BANK ACCOUNT JUST FLINCHED... THE VIBES ARE... CHEAP. ⚡&nbsp;
+        </div>
+      </motion.div>
+
+      {/* ROW 3: Bottom Horizontal Banner Quote */}
+      <motion.div 
+        variants={itemVariants}
+        className="bg-[#0B0D11]/90 border border-white/5 rounded-3xl p-6 md:p-8 flex items-center gap-6 shadow-[0_15px_40px_rgba(0,0,0,0.5)] relative overflow-hidden group min-h-[100px]"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#E2FF00]/5 to-transparent opacity-30 pointer-events-none" />
+        
+        {/* Glowing quote icon */}
+        <div className="p-3 bg-[#E2FF00]/10 border border-[#E2FF00]/20 rounded-2xl shrink-0 shadow-[0_0_15px_rgba(226,255,0,0.1)]">
+          <Quote className="w-5 h-5 text-[#E2FF00] transform rotate-180" />
+        </div>
+        
+        <p className="text-xs md:text-sm text-white/80 font-black italic tracking-wide leading-relaxed relative z-10 flex-1 pr-6">
+          "Discipline is choosing between what you want now and what you want most. <span className="text-[#E2FF00] font-black uppercase not-italic tracking-widest ml-1">// impulse.ai</span>"
+        </p>
+
+        {/* Mascot premium avatar with crown on the right */}
+        <div className="relative shrink-0 hidden sm:block pointer-events-none w-16 h-16 mr-2 z-10">
+          <span className="absolute -top-3.5 left-1/2 transform -translate-x-1/2 text-sm animate-bounce drop-shadow-[0_0_8px_rgba(226,255,0,0.8)]">👑</span>
+          <img 
+            src="/mascot.png" 
+            alt="Mascot Avatar" 
+            className="w-full h-full object-contain filter contrast-125 saturate-110 drop-shadow-[0_4px_8px_rgba(0,0,0,0.35)]" 
+          />
+        </div>
+      </motion.div>
+    </motion.div>
   );
 };
