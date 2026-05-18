@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LinkIcon, Zap, Skull, Heart, Clock, TrendingUp } from 'lucide-react';
 import { BentoGrid } from '../components/BentoGrid';
+import { AvatarSticker } from '../components/AvatarSticker';
+import type { AvatarState } from '../components/AvatarSticker';
 import { LoadingScreen } from '../components/LoadingScreen';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
@@ -35,6 +37,7 @@ export const Dashboard: React.FC = () => {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [avatarState, setAvatarState] = useState<AvatarState>('neutral');
   
   // Interactive Vibe Selection (Dynamic state that connects to Gemini and MainLayout)
   const [vibe, setVibe] = useState<'Savage' | 'Enabler'>(() => {
@@ -185,6 +188,13 @@ export const Dashboard: React.FC = () => {
       if (!response.ok) throw new Error('Analysis failed');
       const data = await response.json();
       setResult(data);
+
+      // Map analysis score to avatar expression state
+      const scoreTotal = data.score?.total || 70;
+      if (scoreTotal >= 80) setAvatarState('shocked');
+      else if (scoreTotal >= 60) setAvatarState('disgusted');
+      else if (scoreTotal <= 30) setAvatarState('impressed');
+      else setAvatarState('neutral');
       
       // Prepend to history dynamically
       const newRoast: RecentRoastItem = {
@@ -248,7 +258,7 @@ export const Dashboard: React.FC = () => {
       </AnimatePresence>
 
       {/* LEFT CONTENT AREA: Form + Output (takes 73% width) */}
-      <div className="flex-1 p-6 md:p-10 flex flex-col gap-8 overflow-y-auto max-w-[1200px]">
+      <div className={`flex-1 p-6 md:p-10 flex flex-col gap-8 overflow-y-auto max-w-[1200px] transition-all duration-500 ${!result && !loading ? 'justify-center min-h-[85vh]' : ''}`}>
         {/* Onboarding Mascot Banner */}
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
@@ -260,15 +270,12 @@ export const Dashboard: React.FC = () => {
           {/* Anime character uncropped premium illustration */}
           <div 
             onClick={handleMascotClick}
-            className="relative group shrink-0 cursor-pointer select-none z-10 -ml-2 -my-6"
+            className="relative group shrink-0 cursor-pointer select-none z-10 -ml-2"
           >
             <div className="absolute -inset-2 bg-gradient-to-tr from-[#E2FF00]/10 to-purple-500/10 rounded-full blur-[12px] opacity-70 group-hover:opacity-90 transition-opacity" />
-            <motion.img 
-              whileHover={{ scale: 1.06, rotate: 2 }}
-              whileTap={{ scale: 0.95 }}
-              src="/mascot.png" 
-              alt="Mascot Avatar" 
-              className="w-32 h-32 md:w-36 md:h-36 object-contain filter contrast-110 drop-shadow-[0_8px_16px_rgba(0,0,0,0.4)]"
+            <AvatarSticker 
+              state={avatarState} 
+              className="w-32 h-32 md:w-36 md:h-36" 
             />
             {/* Curved cute thought bubble next to her head */}
             <motion.div 
@@ -361,7 +368,7 @@ export const Dashboard: React.FC = () => {
               transition={{ duration: 0.4 }}
               className="w-full"
             >
-              <BentoGrid result={result} onReset={() => { setResult(null); setUrl(''); }} />
+              <BentoGrid result={result} onReset={() => { setResult(null); setUrl(''); setAvatarState('neutral'); }} />
             </motion.div>
           )}
         </AnimatePresence>
